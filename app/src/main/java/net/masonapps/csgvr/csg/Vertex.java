@@ -13,6 +13,9 @@ public class Vertex {
     public final Vector3 normal = new Vector3(0, 1, 0);
     public final Vector2 uv = new Vector2();
 
+    public Vertex() {
+    }
+
     public Vertex(Vertex vertex) {
         set(vertex);
     }
@@ -32,5 +35,11 @@ public class Vertex {
         normal.lerp(other.normal, t);
         uv.lerp(other.uv, t);
         return this;
+    }
+
+    public Vertex copy() {
+        final Vertex vertex = new Vertex();
+        vertex.set(this);
+        return vertex;
     }
 }

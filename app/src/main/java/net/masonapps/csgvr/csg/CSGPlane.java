@@ -60,7 +60,7 @@ public class CSGPlane {
                 if(this.normal.dot(polygon.plane.normal) > 0)
                     coplanarFront.add(polygon);
                 else
-                    coplanarFront.add(polygon);
+                    coplanarBack.add(polygon);
                 break;
             case FRONT:
                 front.add(polygon);
@@ -112,5 +112,9 @@ public class CSGPlane {
             return BACK;
         else 
             return SPANNING;
+    }
+
+    public CSGPlane copy() {
+        return new CSGPlane(normal, d);
     }
 }
