@@ -22,13 +22,18 @@ public class BSPTreeNode {
         this.polygons = new Array<>();
     }
 
+    public BSPTreeNode(Array<CSGPolygon> polygons) {
+        this();
+        build(polygons);
+    }
+
     public void build(Array<CSGPolygon> polygons) {
         if (polygons.size == 0) return;
         divider = polygons.get(0).plane.copy();
         Array<CSGPolygon> frontPolygons = new Array<>();
         Array<CSGPolygon> backPolygons = new Array<>();
         for (int i = 0; i < polygons.size; i++) {
-            divider.splitPolygon(polygons.get(i), polygons, polygons, frontPolygons, backPolygons);
+            divider.splitPolygon(polygons.get(i), this.polygons, this.polygons, frontPolygons, backPolygons);
         }
         if (frontPolygons.size > 0) {
             if (front == null)

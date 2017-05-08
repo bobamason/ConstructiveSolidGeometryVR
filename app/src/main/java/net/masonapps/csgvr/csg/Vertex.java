@@ -20,7 +20,7 @@ public class Vertex {
         set(vertex);
     }
 
-    private void set(Vertex vertex) {
+    public void set(Vertex vertex) {
         this.position.set(vertex.position);
         this.normal.set(vertex.normal);
         this.uv.set(vertex.uv);

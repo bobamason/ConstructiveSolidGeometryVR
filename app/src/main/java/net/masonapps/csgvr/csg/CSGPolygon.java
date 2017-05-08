@@ -1,6 +1,5 @@
 package net.masonapps.csgvr.csg;
 
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 
 /**
@@ -15,17 +14,15 @@ public class CSGPolygon {
     }
 
     public CSGPolygon(Array<Vertex> vertices) {
-        this.vertices = vertices;
+        for (Vertex vertex : vertices) {
+            this.vertices.add(vertex.copy());
+        }
         updatePlane();
     }
 
     public void updatePlane() {
         if (vertices.size < 3) return;
-        Vector3 a = vertices.get(0).position;
-        Vector3 b = vertices.get(1).position;
-        Vector3 c = vertices.get(2).position;
-        plane.normal.set(b.cpy().sub(a)).crs(c.cpy().sub(a));
-        plane.d = plane.normal.dot(a);
+        plane.set(vertices.get(0).position, vertices.get(1).position, vertices.get(2).position);
     }
 
     public void flip() {
