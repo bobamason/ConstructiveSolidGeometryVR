@@ -46,6 +46,7 @@ public class CSGPolygon {
         for (Vertex vertex : vertices) {
             polygon.vertices.add(vertex.copy());
         }
+        polygon.updatePlane();
         return polygon;
     }
 }

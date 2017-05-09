@@ -17,13 +17,17 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.SphereShapeBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 
 import net.masonapps.csgvr.csg.CSG;
+import net.masonapps.csgvr.csg.CSGPolygon;
+import net.masonapps.csgvr.csg.Vertex;
 
 public class MainActivity extends AndroidApplication {
 
@@ -35,22 +39,35 @@ public class MainActivity extends AndroidApplication {
 
     private static class CSGTest implements ApplicationListener {
 
+        final Vector3 center = new Vector3();
         private final Array<ModelInstance> instances = new Array<>();
         private final PerspectiveCamera camera = new PerspectiveCamera();
+        private CameraInputController cameraController;
         private ModelBatch modelBatch;
         private Environment environment;
+        private ShapeRenderer shapeRenderer;
+        private CSG csg1;
+        private CSG csg2;
+        private Array<CSGPolygon> polygons = new Array<>();
+        private CSG union;
+        private CSG difference;
+        private CSG intersection;
 
-        private static Model createSphere(ModelBuilder modelBuilder, float radius) {
+        private static Model createModel(ModelBuilder modelBuilder, float radius) {
             modelBuilder.begin();
-            final MeshPartBuilder part = modelBuilder.part("sphere", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, new Material(ColorAttribute.createDiffuse(Color.RED)));
-            SphereShapeBuilder.build(part, radius * 2f, radius * 2f, radius * 2f, 24, 24);
+            final MeshPartBuilder part = modelBuilder.part("model", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, new Material(ColorAttribute.createDiffuse(Color.RED)));
+            BoxShapeBuilder.build(part, radius * 2f, radius * 2f, radius * 2f);
             return modelBuilder.end();
         }
-        
+
         @Override
         public void create() {
+            cameraController = new CameraInputController(camera);
+            Gdx.input.setInputProcessor(cameraController);
             environment = new Environment();
             modelBatch = new ModelBatch();
+            shapeRenderer = new ShapeRenderer();
+            shapeRenderer.setAutoShapeType(true);
             environment.set(new ColorAttribute(ColorAttribute.Ambient, Color.GRAY));
             final DirectionalLight light = new DirectionalLight();
             light.setDirection(new Vector3(1, -1, -1).nor());
@@ -58,30 +75,40 @@ public class MainActivity extends AndroidApplication {
 
             final ModelBuilder modelBuilder = new ModelBuilder();
 
-            final ModelInstance s1 = new ModelInstance(createSphere(modelBuilder, 1f));
-            final ModelInstance s2 = new ModelInstance(createSphere(modelBuilder, 0.6f), 0.5f, 0.5f, 0.5f);
-            final CSG csg1 = CSG.fromMesh(s1.model.meshes.get(0), s1.transform);
-            final CSG csg2 = CSG.fromMesh(s2.model.meshes.get(0), s2.transform);
+            final ModelInstance s1 = new ModelInstance(createModel(modelBuilder, 1f));
+            final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.75f, 0.75f, 0.75f);
+            instances.add(s1);
+            instances.add(s2);
+            csg1 = CSG.fromMesh(s1.model.meshes.get(0), s1.transform);
+            csg2 = CSG.fromMesh(s2.model.meshes.get(0), s2.transform);
+            union = csg1.union(csg2);
+            difference = csg1.subtract(csg2);
+            intersection = csg1.intersect(csg2);
 
 //            modelBuilder.begin();
 //            final Mesh mesh = CSG.toMesh(csg1);
 //            modelBuilder.part("mesh", mesh, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
 //            instances.add(new ModelInstance(modelBuilder.end()));
 
+//            modelBuilder.begin();
+//            final Mesh mesh1 = CSG.toLineMesh(csg1);
+//            modelBuilder.part("mesh", mesh1, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
+//            instances.add(new ModelInstance(modelBuilder.end()));
+
             modelBuilder.begin();
-            final Mesh mesh = CSG.toPoints(csg1);
-            modelBuilder.part("mesh", mesh, GL20.GL_POINTS, new Material(ColorAttribute.createDiffuse(Color.SKY)));
+            final Mesh mesh2 = CSG.toLineMesh(csg2);
+            modelBuilder.part("mesh", mesh2, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.GREEN)));
             instances.add(new ModelInstance(modelBuilder.end()));
 
             modelBuilder.begin();
-            final Mesh lineMesh = CSG.toPoints(csg2);
-            modelBuilder.part("lines", lineMesh, GL20.GL_POINTS, new Material(ColorAttribute.createDiffuse(Color.YELLOW)));
+            final Mesh polygonsToMesh = CSG.polygonsToMesh(CSG.polygonsFromMesh(s1.model.meshes.get(0), s1.transform));
+            modelBuilder.part("mesh", polygonsToMesh, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
             instances.add(new ModelInstance(modelBuilder.end()));
 
-            modelBuilder.begin();
-            final Mesh uMesh = CSG.toLineMesh(csg1.union(csg2));
-            modelBuilder.part("lines", uMesh, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.GREEN)));
-            instances.add(new ModelInstance(modelBuilder.end(), 0, 0.01f, 0));
+//            modelBuilder.begin();
+//            final Mesh uMesh = CSG.toLineMesh(intersection);
+//            modelBuilder.part("mesh", uMesh, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.GREEN)));
+//            instances.add(new ModelInstance(modelBuilder.end(), 0, 0.01f, 0));
 
 //            instances.add(s1);
 //            instances.add(s2);
@@ -106,6 +133,30 @@ public class MainActivity extends AndroidApplication {
 //            modelBatch.render(instances, environment);
             modelBatch.render(instances);
             modelBatch.end();
+
+            shapeRenderer.setProjectionMatrix(camera.combined);
+            renderCSGTree(csg1, Color.SKY);
+            renderCSGTree(csg2, Color.GREEN);
+//            renderCSGTree(union, Color.WHITE);
+//            renderCSGTree(intersection, Color.YELLOW);
+//            renderCSGTree(difference, Color.RED);
+        }
+
+        private void renderCSGTree(CSG csg, Color color) {
+            final float s = 0.03f;
+            shapeRenderer.begin();
+            shapeRenderer.setColor(color);
+            polygons.clear();
+            csg.tree.getAllPolygons(polygons);
+            for (CSGPolygon polygon : polygons) {
+                for (Vertex vertex : polygon.vertices) {
+                    final Vector3 v = vertex.position;
+                    final Vector3 n = polygon.plane.normal;
+                    shapeRenderer.line(v.x, v.y, v.z, v.x + n.x, v.y + n.y, v.z + n.z);
+                    shapeRenderer.box(v.x, v.y, v.z, s, s, s);
+                }
+            }
+            shapeRenderer.end();
         }
 
         @Override
@@ -121,6 +172,7 @@ public class MainActivity extends AndroidApplication {
         @Override
         public void dispose() {
             modelBatch.dispose();
+            shapeRenderer.dispose();
         }
     }
 }
