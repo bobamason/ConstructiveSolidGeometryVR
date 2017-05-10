@@ -29,11 +29,13 @@ public class BSPTreeNode {
 
     public void build(Array<CSGPolygon> polygons) {
         if (polygons.size == 0) return;
-        divider = polygons.get(0).plane.copy();
+        if (divider == null)
+            divider = polygons.get(0).plane.copy();
         Array<CSGPolygon> frontPolygons = new Array<>();
         Array<CSGPolygon> backPolygons = new Array<>();
         for (int i = 0; i < polygons.size; i++) {
-            divider.splitPolygon(polygons.get(i), this.polygons, this.polygons, frontPolygons, backPolygons);
+            if (divider != null)
+                divider.splitPolygon(polygons.get(i), this.polygons, this.polygons, frontPolygons, backPolygons);
         }
         if (frontPolygons.size > 0) {
             if (front == null)
@@ -50,8 +52,11 @@ public class BSPTreeNode {
     public boolean isConvex() {
         for (int i = 0; i < polygons.size; i++) {
             for (int j = 0; j < polygons.size; j++) {
-                if (i != j && polygons.get(i).plane.classifyPolygon(polygons.get(j)) != CSGPlane.BACK)
-                    return false;
+                final CSGPlane polygonPlane = polygons.get(i).plane;
+                if (polygonPlane != null) {
+                    if (i != j && polygonPlane.classifyPolygon(polygons.get(j)) != CSGPlane.BACK)
+                        return false;
+                }
             }
         }
         return true;
@@ -127,13 +132,14 @@ public class BSPTreeNode {
     }
 
     public BSPTreeNode copy() {
-        final BSPTreeNode node = new BSPTreeNode();
-        node.divider = divider == null ? null : divider.copy();
-        for (CSGPolygon polygon : polygons) {
-            node.polygons.add(polygon.copy());
-        }
-        node.front = front == null ? null : front.copy();
-        node.back = back == null ? null : back.copy();
-        return node;
+//        final BSPTreeNode node = new BSPTreeNode();
+//        node.divider = divider == null ? null : divider.copy();
+//        for (CSGPolygon polygon : polygons) {
+//            node.polygons.add(polygon.copy());
+//        }
+//        node.front = front == null ? null : front.copy();
+//        node.back = back == null ? null : back.copy();
+//        return node;
+        return new BSPTreeNode(getAllPolygons());
     }
 }

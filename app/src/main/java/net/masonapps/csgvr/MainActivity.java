@@ -55,7 +55,7 @@ public class MainActivity extends AndroidApplication {
 
         private static Model createModel(ModelBuilder modelBuilder, float radius) {
             modelBuilder.begin();
-            final MeshPartBuilder part = modelBuilder.part("model", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, new Material(ColorAttribute.createDiffuse(Color.RED)));
+            final MeshPartBuilder part = modelBuilder.part("model", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, new Material(ColorAttribute.createDiffuse(Color.BLUE)));
             BoxShapeBuilder.build(part, radius * 2f, radius * 2f, radius * 2f);
             return modelBuilder.end();
         }
@@ -77,8 +77,10 @@ public class MainActivity extends AndroidApplication {
 
             final ModelInstance s1 = new ModelInstance(createModel(modelBuilder, 1f));
             final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.75f, 0.75f, 0.75f);
-            instances.add(s1);
-            instances.add(s2);
+//            instances.add(s1);
+//            instances.add(s2);
+//            final BSPTreeNode boxTree = ShapeUtils.createBoxTree();
+//            csg1 = new CSG(boxTree);
             csg1 = CSG.fromMesh(s1.model.meshes.get(0), s1.transform);
             csg2 = CSG.fromMesh(s2.model.meshes.get(0), s2.transform);
             union = csg1.union(csg2);
@@ -91,27 +93,29 @@ public class MainActivity extends AndroidApplication {
 //            instances.add(new ModelInstance(modelBuilder.end()));
 
 //            modelBuilder.begin();
-//            final Mesh mesh1 = CSG.toLineMesh(csg1);
-//            modelBuilder.part("mesh", mesh1, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
+//            final Mesh mesh2 = CSG.toMesh(csg2);
+//            modelBuilder.part("mesh", mesh2, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.OLIVE)));
 //            instances.add(new ModelInstance(modelBuilder.end()));
 
             modelBuilder.begin();
-            final Mesh mesh2 = CSG.toLineMesh(csg2);
-            modelBuilder.part("mesh", mesh2, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.GREEN)));
+            final Mesh lineMesh = CSG.toLineMesh(csg1);
+            modelBuilder.part("mesh", lineMesh, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.BLUE)));
             instances.add(new ModelInstance(modelBuilder.end()));
 
             modelBuilder.begin();
-            final Mesh polygonsToMesh = CSG.polygonsToMesh(CSG.polygonsFromMesh(s1.model.meshes.get(0), s1.transform));
-            modelBuilder.part("mesh", polygonsToMesh, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
+            final Mesh lineMesh2 = CSG.toLineMesh(csg2);
+            modelBuilder.part("mesh", lineMesh2, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.LIME)));
+            instances.add(new ModelInstance(modelBuilder.end()));
+
+            modelBuilder.begin();
+            final Mesh uMesh = CSG.toMesh(union);
+            modelBuilder.part("mesh", uMesh, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.BROWN)));
             instances.add(new ModelInstance(modelBuilder.end()));
 
 //            modelBuilder.begin();
-//            final Mesh uMesh = CSG.toLineMesh(intersection);
-//            modelBuilder.part("mesh", uMesh, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.GREEN)));
-//            instances.add(new ModelInstance(modelBuilder.end(), 0, 0.01f, 0));
-
-//            instances.add(s1);
-//            instances.add(s2);
+//            final Mesh uLineMesh = CSG.toLineMesh(union);
+//            modelBuilder.part("mesh", uLineMesh, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.YELLOW)));
+//            instances.add(new ModelInstance(modelBuilder.end()));
         }
 
         @Override
@@ -135,15 +139,15 @@ public class MainActivity extends AndroidApplication {
             modelBatch.end();
 
             shapeRenderer.setProjectionMatrix(camera.combined);
-            renderCSGTree(csg1, Color.SKY);
-            renderCSGTree(csg2, Color.GREEN);
-//            renderCSGTree(union, Color.WHITE);
+            renderCSGTree(csg1, Color.BLUE);
+            renderCSGTree(csg2, Color.LIME);
+            renderCSGTree(union, Color.WHITE);
 //            renderCSGTree(intersection, Color.YELLOW);
 //            renderCSGTree(difference, Color.RED);
         }
 
         private void renderCSGTree(CSG csg, Color color) {
-            final float s = 0.03f;
+            final float s = 0.1f;
             shapeRenderer.begin();
             shapeRenderer.setColor(color);
             polygons.clear();
@@ -151,9 +155,11 @@ public class MainActivity extends AndroidApplication {
             for (CSGPolygon polygon : polygons) {
                 for (Vertex vertex : polygon.vertices) {
                     final Vector3 v = vertex.position;
-                    final Vector3 n = polygon.plane.normal;
-                    shapeRenderer.line(v.x, v.y, v.z, v.x + n.x, v.y + n.y, v.z + n.z);
-                    shapeRenderer.box(v.x, v.y, v.z, s, s, s);
+                    final Vector3 n;
+                    if (polygon.plane != null) {
+                        n = polygon.plane.normal;
+                        shapeRenderer.line(v.x, v.y, v.z, v.x + n.x * s, v.y + n.y * s, v.z + n.z * s);
+                    }
                 }
             }
             shapeRenderer.end();

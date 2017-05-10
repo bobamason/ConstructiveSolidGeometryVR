@@ -20,16 +20,17 @@ public class CSG {
     }
 
     public static CSG fromMesh(Mesh mesh, Matrix4 transform) {
-        return new CSG(new BSPTreeNode(polygonsFromMesh(mesh, transform)));
+        return new CSG(new BSPTreeNode(meshToPolygons(mesh, transform)));
     }
 
-    public static Array<CSGPolygon> polygonsFromMesh(Mesh mesh, Matrix4 transform) {
+    public static Array<CSGPolygon> meshToPolygons(Mesh mesh, Matrix4 transform) {
         final Array<CSGPolygon> polygons = new Array<>();
         final int numVertices = mesh.getNumVertices();
         final int vertexSize = 8;
 //        if(vertexSize != 8) throw new IllegalArgumentException("mesh must has position, normal, and uv");
         final float[] vertices = new float[numVertices * vertexSize];
         mesh.getVertices(vertices);
+//        Log.i("meshToPolygons vertices", Arrays.toString(vertices));
         final short[] indices = new short[mesh.getNumIndices()];
         mesh.getIndices(indices);
         final Array<Vertex> tmpVerts = new Array<>(3);
@@ -75,50 +76,55 @@ public class CSG {
         final FloatArray vertices = new FloatArray();
         final ShortArray indices = new ShortArray();
         final Vertex tempVertex = new Vertex();
-        int index = -1;
+        int index = 0;
         for (CSGPolygon polygon : polygons) {
-//            for (int i = 2; i < polygon.getVertexCount(); i++) {
-//                if (i < 3) {
-            tempVertex.set(polygon.vertices.get(0));
-            vertices.add(tempVertex.position.x);
-            vertices.add(tempVertex.position.y);
-            vertices.add(tempVertex.position.z);
-            vertices.add(tempVertex.normal.x);
-            vertices.add(tempVertex.normal.y);
-            vertices.add(tempVertex.normal.z);
-            vertices.add(tempVertex.uv.x);
-            vertices.add(tempVertex.uv.y);
-            indices.add(index++);
+            for (int i = 2; i < polygon.getVertexCount(); i++) {
+                if (i < 3) {
+                    tempVertex.set(polygon.vertices.get(i - 2));
+                    vertices.add(tempVertex.position.x);
+                    vertices.add(tempVertex.position.y);
+                    vertices.add(tempVertex.position.z);
+                    vertices.add(tempVertex.normal.x);
+                    vertices.add(tempVertex.normal.y);
+                    vertices.add(tempVertex.normal.z);
+                    vertices.add(tempVertex.uv.x);
+                    vertices.add(tempVertex.uv.y);
+                    indices.add(index);
+                    index++;
 
-            tempVertex.set(polygon.vertices.get(1));
-            vertices.add(tempVertex.position.x);
-            vertices.add(tempVertex.position.y);
-            vertices.add(tempVertex.position.z);
-            vertices.add(tempVertex.normal.x);
-            vertices.add(tempVertex.normal.y);
-            vertices.add(tempVertex.normal.z);
-            vertices.add(tempVertex.uv.x);
-            vertices.add(tempVertex.uv.y);
-            indices.add(index++);
-//                } else {
-//                    indices.add(index - 1);
-//                    indices.add(index);
-//                }
-            tempVertex.set(polygon.vertices.get(2));
-            vertices.add(tempVertex.position.x);
-            vertices.add(tempVertex.position.y);
-            vertices.add(tempVertex.position.z);
-            vertices.add(tempVertex.normal.x);
-            vertices.add(tempVertex.normal.y);
-            vertices.add(tempVertex.normal.z);
-            vertices.add(tempVertex.uv.x);
-            vertices.add(tempVertex.uv.y);
-            indices.add(index++);
-//            }
+                    tempVertex.set(polygon.vertices.get(i - 1));
+                    vertices.add(tempVertex.position.x);
+                    vertices.add(tempVertex.position.y);
+                    vertices.add(tempVertex.position.z);
+                    vertices.add(tempVertex.normal.x);
+                    vertices.add(tempVertex.normal.y);
+                    vertices.add(tempVertex.normal.z);
+                    vertices.add(tempVertex.uv.x);
+                    vertices.add(tempVertex.uv.y);
+                    indices.add(index);
+                    index++;
+                } else {
+                    indices.add(index - 2);
+                    indices.add(index - 1);
+                }
+                tempVertex.set(polygon.vertices.get(i));
+                vertices.add(tempVertex.position.x);
+                vertices.add(tempVertex.position.y);
+                vertices.add(tempVertex.position.z);
+                vertices.add(tempVertex.normal.x);
+                vertices.add(tempVertex.normal.y);
+                vertices.add(tempVertex.normal.z);
+                vertices.add(tempVertex.uv.x);
+                vertices.add(tempVertex.uv.y);
+                indices.add(index);
+                index++;
+            }
         }
         final Mesh mesh = new Mesh(false, vertices.size, indices.size, VertexAttribute.Position(), VertexAttribute.Normal(), VertexAttribute.TexCoords(0));
         mesh.setIndices(indices.toArray());
-        mesh.setVertices(vertices.toArray());
+        final float[] vertArray = vertices.toArray();
+        mesh.setVertices(vertArray);
+//        Log.i("polygonsToMesh vertices", Arrays.toString(vertArray));
         return mesh;
     }
 
@@ -130,7 +136,7 @@ public class CSG {
         final FloatArray vertices = new FloatArray();
         final ShortArray indices = new ShortArray();
         final Vertex tempVertex = new Vertex();
-        int index = -1;
+        int index = 0;
         for (int p = 0; p < polygons.size; p++) {
             final CSGPolygon polygon = polygons.get(p);
             final int vertexCount = polygon.getVertexCount();
@@ -139,7 +145,7 @@ public class CSG {
                 vertices.add(tempVertex.position.x);
                 vertices.add(tempVertex.position.y);
                 vertices.add(tempVertex.position.z);
-                indices.add(index++);
+                indices.add(index);
 //                Log.i("index start", index + "");
                 if (i >= 1) {
                     indices.add(index);
@@ -150,6 +156,7 @@ public class CSG {
                     indices.add(index - end);
 //                    Log.i("index end", (index - end) + "");
                 }
+                index++;
             }
 
         }
@@ -188,6 +195,7 @@ public class CSG {
         b.clipTo(a);
         b.invert();
         b.clipTo(a);
+        b.invert();
         a.build(b.getAllPolygons());
         return new CSG(a);
     }
@@ -215,6 +223,7 @@ public class CSG {
         a.clipTo(b);
         b.clipTo(a);
         a.build(b.getAllPolygons());
+        a.invert();
         return new CSG(a);
     }
 }

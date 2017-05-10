@@ -1,5 +1,7 @@
 package net.masonapps.csgvr.csg;
 
+import android.support.annotation.Nullable;
+
 import com.badlogic.gdx.utils.Array;
 
 /**
@@ -7,7 +9,8 @@ import com.badlogic.gdx.utils.Array;
  */
 
 public class CSGPolygon {
-    public final CSGPlane plane = new CSGPlane();
+    @Nullable
+    public CSGPlane plane = null;
     public Array<Vertex> vertices = new Array<>(3);
 
     public CSGPolygon() {
@@ -22,31 +25,27 @@ public class CSGPolygon {
 
     public void updatePlane() {
         if (vertices.size < 3) return;
+        plane = new CSGPlane();
         plane.set(vertices.get(0).position, vertices.get(1).position, vertices.get(2).position);
     }
 
     public void flip() {
-        plane.flip();
-        if(vertices.size == 0) return;
+        if (plane != null)
+            plane.flip();
         final Array<Vertex> tmpVert = new Array<>(vertices.size);
-        for (int i = 0; i < vertices.size; i++) {
-            final Vertex vertex = vertices.get(vertices.size - 1 - i);
+        for (int i = vertices.size - 1; i >= 0; i--) {
+            final Vertex vertex = vertices.get(i);
             vertex.flip();
             tmpVert.add(vertex);
         }
         vertices = tmpVert;
     }
-    
-    public int getVertexCount(){
+
+    public int getVertexCount() {
         return vertices.size;
     }
 
     public CSGPolygon copy() {
-        final CSGPolygon polygon = new CSGPolygon();
-        for (Vertex vertex : vertices) {
-            polygon.vertices.add(vertex.copy());
-        }
-        polygon.updatePlane();
-        return polygon;
+        return new CSGPolygon(vertices);
     }
 }
