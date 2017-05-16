@@ -25,9 +25,9 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 
-import net.masonapps.csgvr.csg.CSG;
-import net.masonapps.csgvr.csg.CSGPolygon;
-import net.masonapps.csgvr.csg.Vertex;
+import net.masonapps.csgvr.csg.ConversionUtils;
+
+import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 
 public class MainActivity extends AndroidApplication {
 
@@ -39,20 +39,12 @@ public class MainActivity extends AndroidApplication {
 
     private static class CSGTest implements ApplicationListener {
 
-        final Vector3 center = new Vector3();
         private final Array<ModelInstance> instances = new Array<>();
         private final PerspectiveCamera camera = new PerspectiveCamera();
         private CameraInputController cameraController;
         private ModelBatch modelBatch;
         private Environment environment;
         private ShapeRenderer shapeRenderer;
-        private CSG csg1;
-        private CSG csg2;
-        private Array<CSGPolygon> polygons = new Array<>();
-        private CSG union;
-        private CSG difference;
-        private CSG intersection;
-
         private static Model createModel(ModelBuilder modelBuilder, float radius) {
             modelBuilder.begin();
             final MeshPartBuilder part = modelBuilder.part("model", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, new Material(ColorAttribute.createDiffuse(Color.BLUE)));
@@ -79,43 +71,18 @@ public class MainActivity extends AndroidApplication {
             final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.75f, 0.75f, 0.75f);
 //            instances.add(s1);
 //            instances.add(s2);
-//            final BSPTreeNode boxTree = ShapeUtils.createBoxTree();
-//            csg1 = new CSG(boxTree);
-            csg1 = CSG.fromMesh(s1.model.meshes.get(0), s1.transform);
-            csg2 = CSG.fromMesh(s2.model.meshes.get(0), s2.transform);
-            union = csg1.union(csg2);
-            difference = csg1.subtract(csg2);
-            intersection = csg1.intersect(csg2);
-
-//            modelBuilder.begin();
-//            final Mesh mesh = CSG.toMesh(csg1);
-//            modelBuilder.part("mesh", mesh, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
-//            instances.add(new ModelInstance(modelBuilder.end()));
-
-//            modelBuilder.begin();
-//            final Mesh mesh2 = CSG.toMesh(csg2);
-//            modelBuilder.part("mesh", mesh2, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.OLIVE)));
-//            instances.add(new ModelInstance(modelBuilder.end()));
 
             modelBuilder.begin();
-            final Mesh lineMesh = CSG.toLineMesh(csg1);
-            modelBuilder.part("mesh", lineMesh, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.BLUE)));
+            final PolyhedronsSet pSet1 = ConversionUtils.modelInstanceToPolyhedronsSet(s1);
+            final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(pSet1);
+            modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GRAY)));
             instances.add(new ModelInstance(modelBuilder.end()));
 
             modelBuilder.begin();
-            final Mesh lineMesh2 = CSG.toLineMesh(csg2);
-            modelBuilder.part("mesh", lineMesh2, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.LIME)));
+            final PolyhedronsSet pSet2 = ConversionUtils.modelInstanceToPolyhedronsSet(s2);
+            final Mesh mesh2 = ConversionUtils.polyhedronsSetToMesh(pSet2);
+            modelBuilder.part("mesh", mesh2, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.OLIVE)));
             instances.add(new ModelInstance(modelBuilder.end()));
-
-            modelBuilder.begin();
-            final Mesh uMesh = CSG.toMesh(union);
-            modelBuilder.part("mesh", uMesh, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.BROWN)));
-            instances.add(new ModelInstance(modelBuilder.end()));
-
-//            modelBuilder.begin();
-//            final Mesh uLineMesh = CSG.toLineMesh(union);
-//            modelBuilder.part("mesh", uLineMesh, GL20.GL_LINES, new Material(ColorAttribute.createDiffuse(Color.YELLOW)));
-//            instances.add(new ModelInstance(modelBuilder.end()));
         }
 
         @Override
@@ -139,31 +106,26 @@ public class MainActivity extends AndroidApplication {
             modelBatch.end();
 
             shapeRenderer.setProjectionMatrix(camera.combined);
-            renderCSGTree(csg1, Color.BLUE);
-            renderCSGTree(csg2, Color.LIME);
-            renderCSGTree(union, Color.WHITE);
-//            renderCSGTree(intersection, Color.YELLOW);
-//            renderCSGTree(difference, Color.RED);
         }
 
-        private void renderCSGTree(CSG csg, Color color) {
-            final float s = 0.1f;
-            shapeRenderer.begin();
-            shapeRenderer.setColor(color);
-            polygons.clear();
-            csg.tree.getAllPolygons(polygons);
-            for (CSGPolygon polygon : polygons) {
-                for (Vertex vertex : polygon.vertices) {
-                    final Vector3 v = vertex.position;
-                    final Vector3 n;
-                    if (polygon.plane != null) {
-                        n = polygon.plane.normal;
-                        shapeRenderer.line(v.x, v.y, v.z, v.x + n.x * s, v.y + n.y * s, v.z + n.z * s);
-                    }
-                }
-            }
-            shapeRenderer.end();
-        }
+//        private void renderCSGTree(CSG csg, Color color) {
+//            final float s = 0.1f;
+//            shapeRenderer.begin();
+//            shapeRenderer.setColor(color);
+//            polygons.clear();
+//            csg.tree.getAllPolygons(polygons);
+//            for (CSGPolygon polygon : polygons) {
+//                for (Vertex vertex : polygon.vertices) {
+//                    final Vector3 v = vertex.position;
+//                    final Vector3 n;
+//                    if (polygon.plane != null) {
+//                        n = polygon.plane.normal;
+//                        shapeRenderer.line(v.x, v.y, v.z, v.x + n.x * s, v.y + n.y * s, v.z + n.z * s);
+//                    }
+//                }
+//            }
+//            shapeRenderer.end();
+//        }
 
         @Override
         public void pause() {
