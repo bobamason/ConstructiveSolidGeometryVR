@@ -26,11 +26,37 @@ public class Box extends Primitive {
 
     @Override
     protected void buildShape(List<Vector3D> vertices, List<int[]> facets) {
+        final double hw = width / 2.0;
+        final double hh = height / 2.0;
+        final double hd = depth / 2.0;
+        //0
+        vertices.add(new Vector3D(-hw, hh, hd));
+        //1
+        vertices.add(new Vector3D(hw, hh, hd));
+        //2
+        vertices.add(new Vector3D(hw, hh, -hd));
+        //3
+        vertices.add(new Vector3D(-hw, hh, -hd));
+
+        //4
+        vertices.add(new Vector3D(-hw, -hh, -hd));
+        //5
+        vertices.add(new Vector3D(hw, -hh, -hd));
+        //6
+        vertices.add(new Vector3D(hw, -hh, hd));
+        //7
+        vertices.add(new Vector3D(-hw, -hh, hd));
         //top
+        facets.add(new int[]{0, 1, 2, 3});
         //bottom
+        facets.add(new int[]{4, 5, 6, 7});
         //front
+        facets.add(new int[]{7, 6, 1, 0});
         //back
+        facets.add(new int[]{5, 4, 3, 2});
         //left
+        facets.add(new int[]{4, 7, 0, 3});
         //right
+        facets.add(new int[]{6, 5, 2, 1});
     }
 }

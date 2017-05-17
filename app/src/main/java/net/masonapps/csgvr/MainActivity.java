@@ -20,14 +20,19 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.SphereShapeBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 
-import net.masonapps.csgvr.csg.ConversionUtils;
+import net.masonapps.csgvr.csg.CSG;
+import net.masonapps.csgvr.primitives.Box;
+import net.masonapps.csgvr.primitives.ConversionUtils;
 
+import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 
 public class MainActivity extends AndroidApplication {
 
@@ -45,10 +50,13 @@ public class MainActivity extends AndroidApplication {
         private ModelBatch modelBatch;
         private Environment environment;
         private ShapeRenderer shapeRenderer;
+        private CSG csg1;
+        private DirectionalLight light;
+
         private static Model createModel(ModelBuilder modelBuilder, float radius) {
             modelBuilder.begin();
             final MeshPartBuilder part = modelBuilder.part("model", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, new Material(ColorAttribute.createDiffuse(Color.BLUE)));
-            BoxShapeBuilder.build(part, radius * 2f, radius * 2f, radius * 2f);
+            SphereShapeBuilder.build(part, radius * 2f, radius * 2f, radius * 2f, 24, 12);
             return modelBuilder.end();
         }
 
@@ -61,28 +69,31 @@ public class MainActivity extends AndroidApplication {
             shapeRenderer = new ShapeRenderer();
             shapeRenderer.setAutoShapeType(true);
             environment.set(new ColorAttribute(ColorAttribute.Ambient, Color.GRAY));
-            final DirectionalLight light = new DirectionalLight();
+            light = new DirectionalLight();
+            light.setColor(Color.WHITE);
             light.setDirection(new Vector3(1, -1, -1).nor());
             environment.add(light);
 
             final ModelBuilder modelBuilder = new ModelBuilder();
 
-            final ModelInstance s1 = new ModelInstance(createModel(modelBuilder, 1f));
-            final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.75f, 0.75f, 0.75f);
+//            final ModelInstance s1 = new ModelInstance(createModel(modelBuilder, 1f));
+//            final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.75f, 0.75f, 0.75f);
+//            csg1 = CSG.fromMesh(s1.model.meshes.get(0), s1.transform);
 //            instances.add(s1);
 //            instances.add(s2);
 
             modelBuilder.begin();
-            final PolyhedronsSet pSet1 = ConversionUtils.modelInstanceToPolyhedronsSet(s1);
-            final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(pSet1);
-            modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GRAY)));
+//            final Mesh mesh1 = CSG.toMesh(csg1);
+            final PolyhedronsSet ps1 = new Box().createPolyhedronsSet();
+            final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.25, 0, 0));
+            final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh((PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(ps1, ps2));
+            modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY), ColorAttribute.createSpecular(Color.SKY)));
             instances.add(new ModelInstance(modelBuilder.end()));
 
-            modelBuilder.begin();
-            final PolyhedronsSet pSet2 = ConversionUtils.modelInstanceToPolyhedronsSet(s2);
-            final Mesh mesh2 = ConversionUtils.polyhedronsSetToMesh(pSet2);
-            modelBuilder.part("mesh", mesh2, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.OLIVE)));
-            instances.add(new ModelInstance(modelBuilder.end()));
+//            modelBuilder.begin();
+//            final Mesh mesh2 = CSG.toMesh();
+//            modelBuilder.part("mesh", mesh2, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.OLIVE)));
+//            instances.add(new ModelInstance(modelBuilder.end()));
         }
 
         @Override
@@ -100,9 +111,10 @@ public class MainActivity extends AndroidApplication {
             Gdx.gl.glViewport(0, 0, (int) camera.viewportWidth, (int) camera.viewportHeight);
             Gdx.gl.glClearColor(0.15f, 0.15f, 0.15f, 1);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+            light.setDirection(camera.direction);
             modelBatch.begin(camera);
-//            modelBatch.render(instances, environment);
-            modelBatch.render(instances);
+            modelBatch.render(instances, environment);
+//            modelBatch.render(instances);
             modelBatch.end();
 
             shapeRenderer.setProjectionMatrix(camera.combined);

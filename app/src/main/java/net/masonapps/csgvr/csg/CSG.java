@@ -1,8 +1,11 @@
 package net.masonapps.csgvr.csg;
 
+import android.util.Log;
+
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.ShortArray;
@@ -28,11 +31,18 @@ public class CSG {
         final int numVertices = mesh.getNumVertices();
         final int vertexSize = 8;
 //        if(vertexSize != 8) throw new IllegalArgumentException("mesh must has position, normal, and uv");
-        final float[] vertices = new float[numVertices * vertexSize];
+        float[] vertices = new float[numVertices * vertexSize];
         mesh.getVertices(vertices);
 //        Log.i("meshToPolygons vertices", Arrays.toString(vertices));
-        final short[] indices = new short[mesh.getNumIndices()];
+        short[] indices = new short[mesh.getNumIndices()];
         mesh.getIndices(indices);
+
+        final ShortArray newIndices = new ShortArray();
+        final FloatArray newVertices = new FloatArray();
+        removeDoubles(vertices, indices, vertexSize, newVertices, newIndices);
+        vertices = newVertices.toArray();
+        indices = newIndices.toArray();
+
         final Array<Vertex> tmpVerts = new Array<>(3);
         final Vertex a = new Vertex();
         final Vertex b = new Vertex();
@@ -66,6 +76,39 @@ public class CSG {
             polygons.add(new CSGPolygon(tmpVerts));
         }
         return polygons;
+    }
+
+    private static void removeDoubles(float[] vertices, short[] indices, int vertexSize, FloatArray newVertices, ShortArray newIndices) {
+        final Vector3 v1 = new Vector3();
+        final Vector3 v2 = new Vector3();
+        int newIndex;
+        for (int i = 0; i < indices.length; i++) {
+            final short ii = indices[i];
+            int i1 = ii * vertexSize;
+            v1.set(vertices[i1], vertices[i1 + 1], vertices[i1 + 2]);
+            boolean isDouble = false;
+            newIndex = -1;
+            for (int j = 0; j < newIndices.size; j++) {
+                final short ij = newIndices.get(j);
+                if (ii == ij) continue;
+                int i2 = ij * vertexSize;
+                v2.set(vertices[i2], vertices[i2 + 1], vertices[i2 + 2]);
+                if (v1.epsilonEquals(v2, 1e-5f)) {
+                    isDouble = true;
+                    newIndex = ij;
+                    Log.i("** double found ", newIndex + " matches " + ii);
+                    break;
+                }
+            }
+            if (!isDouble) {
+                for (int j = 0; j < vertexSize; j++) {
+                    newVertices.add(vertices[i1 + j]);
+                }
+                newIndices.add(ii);
+            } else if (newIndex != -1) {
+                newIndices.add(newIndex);
+            }
+        }
     }
 
     public static Mesh toMesh(CSG csg) {
