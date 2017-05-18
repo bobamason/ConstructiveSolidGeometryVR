@@ -85,7 +85,7 @@ public class MainActivity extends AndroidApplication {
             modelBuilder.begin();
 //            final Mesh mesh1 = CSG.toMesh(csg1);
             final PolyhedronsSet ps1 = new Box().createPolyhedronsSet();
-            final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.25, 0, 0));
+            final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.0, 0, 0));
             final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh((PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(ps1, ps2));
             modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY), ColorAttribute.createSpecular(Color.SKY)));
             instances.add(new ModelInstance(modelBuilder.end()));

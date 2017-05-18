@@ -15,13 +15,20 @@ import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.twod.Euclidean2D;
 import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
+import org.apache.commons.math3.geometry.euclidean.twod.SubLine;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.BSPTree;
 import org.apache.commons.math3.geometry.partitioning.BSPTreeVisitor;
 import org.apache.commons.math3.geometry.partitioning.BoundaryAttribute;
+import org.apache.commons.math3.geometry.partitioning.Region;
+import org.apache.commons.math3.geometry.partitioning.SubHyperplane;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -118,95 +125,80 @@ public class ConversionUtils {
 
         private void handleSubPlane(SubPlane subPlane, boolean reverse) {
             final Plane plane = (Plane) subPlane.getHyperplane();
-            final Vector2D[][] loops = ((PolygonsSet) subPlane.getRemainingRegion()).getVertices();
-            final FloatArray loopVerts = new FloatArray();
-            for (int iL = 0; iL < loops.length; iL++) {
-                final Vector2D[] loop = loops[iL];
-                loopVerts.clear();
-                Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "loop #" + iL + " size: " + loop.length);
-                if (loop.length < 3 || loop[0] == null) {
-                    Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "skipping loop");
-                    continue;
+            final PolygonsSet remainingRegion = (PolygonsSet) subPlane.getRemainingRegion();
+            final double tolerance = remainingRegion.getTolerance();
+            final Vector2D[][] loops = remainingRegion.getVertices();
+            final HashMap<PolygonsSet, List<Vector2D>> polygonsMap = new HashMap<>();
+            final Collection<SubHyperplane<Euclidean2D>> lines = new ArrayList<>();
+
+            Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "loop count " + loops.length);
+
+            if (loops.length == 1) {
+                final Vector2D[] loop = loops[0];
+                addLoopVertices(plane, loop, reverse);
+            } else {
+
+                for (Vector2D[] loop : loops) {
+                    if (loop.length < 3 || loop[0] == null)
+                        continue;
+
+                    lines.clear();
+                    for (int i = 0; i < loop.length; i++) {
+                        lines.add(new SubLine(loop[i], loop[(i + 1) % loop.length], tolerance));
+                    }
+                    boolean isHole = false;
+                    final PolygonsSet p = new PolygonsSet(lines, tolerance);
+                    for (PolygonsSet polygonsSet : polygonsMap.keySet()) {
+                        isHole = true;
+                        for (Vector2D v : loop) {
+                            if (polygonsSet.checkPoint(v) != Region.Location.INSIDE)
+                                isHole = false;
+                            break;
+                        }
+                        if (isHole) {
+                            Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "hole found!!!!!!");
+                            List<Vector2D> list = polygonsMap.get(polygonsSet);
+                            for (int j = loop.length - 1; j >= 0; j--) {
+                                list.add(loop[j]);
+                            }
+                            break;
+                        }
+                    }
+                    if (!isHole) {
+                        Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "no hole found");
+                        polygonsMap.put(p, new ArrayList<>(Arrays.asList(loop)));
+                    }
                 }
-                for (final Vector2D v : loop) {
-                    loopVerts.add((float) v.getX());
-                    loopVerts.add((float) v.getY());
-                    addVertex(plane.toSpace(v), plane.getNormal().scalarMultiply(reverse ? -1 : 1), vertices);
+
+                for (List<Vector2D> list : polygonsMap.values()) {
+                    final Vector2D[] array = new Vector2D[list.size()];
+                    addLoopVertices(plane, list.toArray(array), reverse);
                 }
-                final ShortArray tempIndices = triangulator.computeTriangles(loopVerts);
-                if (!reverse) {
-                    tempIndices.reverse();
-                }
-                for (int i = 0; i < tempIndices.size; i++) {
-                    final int index = startIndex + tempIndices.get(i);
-//                    Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "index " + index);
-                    indices.add(index);
-                }
-                startIndex = vertices.size / 6;
+
             }
         }
 
-//        private void handleSubPlane(SubPlane subPlane) {
-//            final Plane plane = (Plane) subPlane.getHyperplane();
-//            final Vector2D[][] loops = ((PolygonsSet) subPlane.getRemainingRegion()).getVertices();
-//            final FloatArray loopVerts = new FloatArray();
-//            for (int iL = 0; iL < loops.length; iL++) {
-//                final Vector2D[] loop = loops[iL];
-//                loopVerts.clear();
-//                Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "loop #" + iL + " size: " + loop.length);
-//                if (loop.length < 3 || loop[0] == null) {
-//                    Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "skipping loop");
-//                    continue;
-//                }
-//                for (int i = 2; i < loop.length; i++) {
-//                    if (i == 2) {
-//                        addVertex(plane.toSpace(loop[i - 2]), plane.getNormal(), vertices);
-//                        indices.add(startIndex);
-//                        startIndex++;
-//                        addVertex(plane.toSpace(loop[i - 1]), plane.getNormal(), vertices);
-//                        indices.add(startIndex);
-//                        startIndex++;
-//                    } else {
-//                        indices.add(startIndex - 2);
-//                        indices.add(startIndex - 1);
-//                    }
-//                    addVertex(plane.toSpace(loop[i]), plane.getNormal(), vertices);
-//                    indices.add(startIndex);
-//                    startIndex++;
-////                    addVertex(plane.toSpace(loop[i]), plane.getNormal(), vertices);
-//                }
-//            }
-//        }
+        private void addLoopVertices(Plane plane, Vector2D[] loop, boolean reverse) {
+            final FloatArray tempVerts = new FloatArray();
+            for (Vector2D v : loop) {
+                addVertex(plane.toSpace(v), plane.getNormal().scalarMultiply(reverse ? -1 : 1), this.vertices);
+                tempVerts.add((float) v.getX());
+                tempVerts.add((float) v.getY());
+            }
 
-//        private void handlePlusInside(SubPlane plusInside) {
-//            final Plane plane1 = (Plane) plusInside.getHyperplane();
-//            final Vector2D[][] loops = ((PolygonsSet) plusInside.getRemainingRegion()).getVertices();
-//            for (int iL = 0; iL < loops.length; iL++) {
-//                final Vector2D[] loop = loops[iL];
-//                Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handlePlusInside", "loop #" + iL + " size: " + loop.length);
-//                if (loop.length < 3 || loop[0] == null) {
-//                    Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handlePlusInside", "skipping loop");
-//                    continue;
-//                }
-//                final int startIndex = startIndex;
-//                for (int i = loop.length - 3; i >= 0; i--) {
-//                    if (i == loop.length - 3) {
-//                        addVertex(plane1.toSpace(loop[i + 2]), plane1.getNormal(), vertices);
-//                        indices.add(startIndex);
-//                        startIndex++;
-//                        addVertex(plane1.toSpace(loop[i + 1]), plane1.getNormal(), vertices);
-//                        indices.add(startIndex);
-//                        startIndex++;
-//                    } else {
-//                        indices.add(startIndex);
-//                        indices.add(startIndex - 1);
-//                    }
-//                    addVertex(plane1.toSpace(loop[i]), plane1.getNormal(), vertices);
-//                    indices.add(startIndex);
-//                    startIndex++;
-//                }
-//            }
-//        }
+
+            Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "vertex count " + tempVerts.size / 2);
+
+            final ShortArray tempIndices = triangulator.computeTriangles(tempVerts);
+            if (!reverse) {
+                tempIndices.reverse();
+            }
+            for (int j = 0; j < tempIndices.size; j++) {
+                final int index = startIndex + tempIndices.get(j);
+                indices.add(index);
+            }
+            startIndex = this.vertices.size / 6;
+        }
 
         @Override
         public void visitLeafNode(BSPTree<Euclidean3D> node) {
