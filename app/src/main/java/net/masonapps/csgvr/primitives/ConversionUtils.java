@@ -22,6 +22,7 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.BSPTree;
 import org.apache.commons.math3.geometry.partitioning.BSPTreeVisitor;
 import org.apache.commons.math3.geometry.partitioning.BoundaryAttribute;
+import org.apache.commons.math3.geometry.partitioning.BoundaryProjection;
 import org.apache.commons.math3.geometry.partitioning.Region;
 import org.apache.commons.math3.geometry.partitioning.SubHyperplane;
 
@@ -157,10 +158,14 @@ public class ConversionUtils {
                         }
                         if (isHole) {
                             Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "hole found!!!!!!");
+                            BoundaryProjection<Euclidean2D> projection = polygonsSet.projectToBoundary(loop[loop.length - 1]);
+                            if (projection.getProjected() == null) break;
                             List<Vector2D> list = polygonsMap.get(polygonsSet);
+                            list.add((Vector2D) projection.getProjected());
                             for (int j = loop.length - 1; j >= 0; j--) {
                                 list.add(loop[j]);
                             }
+                            list.add((Vector2D) projection.getProjected());
                             break;
                         }
                     }
