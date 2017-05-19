@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.ShortArray;
 
@@ -37,6 +38,10 @@ import java.util.List;
  */
 
 public class ConversionUtils {
+
+    public static Vector3D convertVector3(Vector3 v) {
+        return new Vector3D(v.x, v.y, v.z);
+    }
 
     public static PolyhedronsSet modelInstanceToPolyhedronsSet(ModelInstance modelInstance) {
         final List<Vector3D> vertexList = new ArrayList<>();
