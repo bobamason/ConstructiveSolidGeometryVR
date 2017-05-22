@@ -141,7 +141,9 @@ public class ConversionUtils {
 
             if (loops.length == 1) {
                 final Vector2D[] loop = loops[0];
-                addLoopVertices(plane, loop, reverse);
+                if (loop.length >= 3 && loop[0] != null) {
+                    addLoopVertices(plane, loop, reverse);
+                }
             } else {
 
                 for (Vector2D[] loop : loops) {
