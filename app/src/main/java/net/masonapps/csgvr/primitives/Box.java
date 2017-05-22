@@ -1,7 +1,9 @@
 package net.masonapps.csgvr.primitives;
 
+import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -25,7 +27,10 @@ public class Box extends Primitive {
     }
 
     @Override
-    protected void buildShape(List<Vector3D> vertices, List<int[]> facets) {
+    public PolyhedronsSet createPolyhedronsSet() {
+        List<Vector3D> vertices = new ArrayList<>();
+        List<int[]> facets = new ArrayList<>();
+        
         final double hw = width / 2.0;
         final double hh = height / 2.0;
         final double hd = depth / 2.0;
@@ -58,5 +63,7 @@ public class Box extends Primitive {
         facets.add(new int[]{4, 7, 0, 3});
         //right
         facets.add(new int[]{6, 5, 2, 1});
+
+        return new PolyhedronsSet(vertices, facets, tolerance);
     }
 }

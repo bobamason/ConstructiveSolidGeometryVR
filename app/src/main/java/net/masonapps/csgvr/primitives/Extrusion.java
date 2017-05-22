@@ -1,15 +1,17 @@
 package net.masonapps.csgvr.primitives;
 
-import android.util.Log;
-
+import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
+import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.twod.Euclidean2D;
 import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.geometry.partitioning.SubHyperplane;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Created by Bob on 5/19/2017.
@@ -31,43 +33,16 @@ public class Extrusion extends Primitive {
     }
 
     @Override
-    protected void buildShape(List<Vector3D> vertices, List<int[]> facets) {
+    public PolyhedronsSet createPolyhedronsSet() {
         final Plane plane = (Plane) subPlane.getHyperplane();
         final PolygonsSet remainingRegion = (PolygonsSet) subPlane.getRemainingRegion();
         final Vector2D[][] loops = remainingRegion.getVertices();
-        int numVerts = 0;
-        for (Vector2D[] loop : loops) {
-            if (loop.length < 3 || loop[0] == null)
-                continue;
-            for (Vector2D v : loop) {
-                vertices.add(plane.toSpace(v));
-                final Vector3D offset = plane.getNormal().scalarMultiply(depth);
-                vertices.add(plane.toSpace(v).add(offset));
-                numVerts++;
-            }
-        }
-        final boolean isDepthPositive = depth > 0.0;
-        final int[] f1 = new int[numVerts];
-        final int[] f2 = new int[numVerts];
-        for (int i = 0; i < numVerts; i += 2) {
-            f1[i] = isDepthPositive ? numVerts - i : i;
-            f2[i] = isDepthPositive ? numVerts - i : i;
-        }
-        facets.add(f1);
-        Log.i(Extrusion.class.getSimpleName() + "->buildShape", "f1: " + Arrays.toString(f1));
-        facets.add(f2);
-        Log.i(Extrusion.class.getSimpleName() + "->buildShape", "f2: " + Arrays.toString(f2));
-
-        for (int i = 0; i < numVerts; i++) {
-            final int i2 = (i + 1) % numVerts;
-            int[] facet;
-            if (isDepthPositive)
-                facet = new int[]{f1[i], f1[i2], f2[i2], f2[i]};
-            else
-                facet = new int[]{f1[i], f1[i2], f2[i2], f2[i]};
-            facets.add(facet);
-            Log.i(Extrusion.class.getSimpleName() + "->buildShape", "link " + i + " - " + i2 + " : " + Arrays.toString(facet));
-        }
+        final Collection<SubHyperplane<Euclidean3D>> subPlanes = new ArrayList<>();
+        final Collection<SubHyperplane<Euclidean2D>> subLines = new ArrayList<>();
+        final PolygonsSet polygonsSet = new PolygonsSet(subLines, tolerance);
+        subPlanes.add(new SubPlane(plane, remainingRegion));
+        subPlanes.add(new SubPlane(new Plane(new Vector3D(), plane.getNormal(), tolerance), remainingRegion));
+        return new PolyhedronsSet(subPlanes, tolerance);
     }
 
     public SubPlane getSubPlane() {
