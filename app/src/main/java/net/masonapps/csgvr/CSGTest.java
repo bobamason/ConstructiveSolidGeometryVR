@@ -15,6 +15,7 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
@@ -28,7 +29,6 @@ import com.badlogic.gdx.utils.Array;
 import net.masonapps.csgvr.csg.CSG;
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
-import net.masonapps.csgvr.primitives.Extrusion;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
@@ -90,10 +90,11 @@ class CSGTest implements ApplicationListener {
         modelBuilder.begin();
 //            final Mesh mesh1 = CSG.toMesh(csg1);
         final PolyhedronsSet ps1 = new Box().createPolyhedronsSet();
-        final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.25, 0, 0));
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(ps1, ps2);
+        final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.35, 0, 0));
+        final PolyhedronsSet ps3 = new Box(0.35, 1.0, 0.35).createPolyhedronsSet().translate(new Vector3D(-0.25, 0.5, 0));
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(ps3, new RegionFactory<Euclidean3D>().difference(ps1, ps2));
         final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet);
-        modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY)));
+        modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.FIREBRICK), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f)));
         instances.add(new ModelInstance(modelBuilder.end()));
 
 //            modelBuilder.begin();
@@ -104,7 +105,8 @@ class CSGTest implements ApplicationListener {
 
     @Override
     public void resize(int width, int height) {
-        camera.position.set(0, 0.5f, 4f);
+        camera.position.set(2f, 1f, 2f);
+        camera.near = 0.1f;
         camera.up.set(0, 1, 0);
         camera.lookAt(0, 0, 0);
         camera.viewportWidth = width;
@@ -128,15 +130,17 @@ class CSGTest implements ApplicationListener {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
             final Vector3D point = ConversionUtils.convertVector3(ray.origin);
             final Vector3D point2 = ConversionUtils.convertVector3(ray.direction).add(point);
-            focusedPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
-            if (focusedPlane != null) {
-                final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(new Extrusion(focusedPlane, 0.2f).createPolyhedronsSet());
-                modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
-                instances.add(new ModelInstance(modelBuilder.end()));
-            }
+            final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
+            if (subPlane != null)
+                focusedPlane = subPlane;
+//            if (focusedPlane != null) {
+//                final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(new Extrusion(focusedPlane, 0.2f).createPolyhedronsSet());
+//                modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
+//                instances.add(new ModelInstance(modelBuilder.end()));
+//            }
         }
         if (focusedPlane != null) {
-            shapeRenderer.setColor(Color.LIME);
+            shapeRenderer.setColor(Color.WHITE);
             renderSubPlane(focusedPlane);
         }
     }
