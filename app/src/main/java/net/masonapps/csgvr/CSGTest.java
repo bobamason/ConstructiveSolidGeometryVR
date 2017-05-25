@@ -36,8 +36,14 @@ import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.twod.Euclidean2D;
 import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
+import org.apache.commons.math3.geometry.euclidean.twod.Segment;
+import org.apache.commons.math3.geometry.euclidean.twod.SubLine;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.geometry.partitioning.BSPTree;
+import org.apache.commons.math3.geometry.partitioning.BSPTreeVisitor;
+import org.apache.commons.math3.geometry.partitioning.BoundaryAttribute;
 import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 
 /**
@@ -90,11 +96,12 @@ class CSGTest implements ApplicationListener {
         modelBuilder.begin();
 //            final Mesh mesh1 = CSG.toMesh(csg1);
         final PolyhedronsSet ps1 = new Box().createPolyhedronsSet();
-        final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.35, 0, 0));
+        final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.0, 0, 0));
         final PolyhedronsSet ps3 = new Box(0.35, 1.0, 0.35).createPolyhedronsSet().translate(new Vector3D(-0.25, 0.5, 0));
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(ps3, new RegionFactory<Euclidean3D>().difference(ps1, ps2));
+//        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(ps3, new RegionFactory<Euclidean3D>().difference(ps1, ps2));
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(ps1, ps2);
         final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet);
-        modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.FIREBRICK), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f)));
+        modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f)));
         instances.add(new ModelInstance(modelBuilder.end()));
 
 //            modelBuilder.begin();
@@ -139,10 +146,41 @@ class CSGTest implements ApplicationListener {
 //                instances.add(new ModelInstance(modelBuilder.end()));
 //            }
         }
+
+        polyhedronsSet.getTree(true).visit(new BSPTreeVisitor<Euclidean3D>() {
+            @Override
+            public Order visitOrder(BSPTree<Euclidean3D> node) {
+                return Order.PLUS_SUB_MINUS;
+            }
+
+            @Override
+            public void visitInternalNode(BSPTree<Euclidean3D> node) {
+                BoundaryAttribute<Euclidean3D> attribute =
+                        (BoundaryAttribute<Euclidean3D>) node.getAttribute();
+                if (attribute.getPlusOutside() != null) {
+                    final SubPlane plusOutside = (SubPlane) attribute.getPlusOutside();
+                    handleSubPlane(plusOutside, false);
+                }
+                if (attribute.getPlusInside() != null) {
+                    final SubPlane plusInside = (SubPlane) attribute.getPlusInside();
+                    handleSubPlane(plusInside, true);
+                }
+            }
+
+            @Override
+            public void visitLeafNode(BSPTree<Euclidean3D> node) {
+
+            }
+        });
+        
         if (focusedPlane != null) {
-            shapeRenderer.setColor(Color.WHITE);
+            shapeRenderer.setColor(Color.LIME);
             renderSubPlane(focusedPlane);
         }
+    }
+
+    private void handleSubPlane(SubPlane subPlane, boolean reverse) {
+        renderBSPTree2D(subPlane, reverse);
     }
 
     private void renderSubPlane(SubPlane subPlane) {
@@ -157,6 +195,48 @@ class CSGTest implements ApplicationListener {
             }
         }
         shapeRenderer.end();
+    }
+
+    private void renderBSPTree2D(SubPlane subPlane, final boolean reverse) {
+        final Plane plane = (Plane) subPlane.getHyperplane();
+        final BSPTree<Euclidean2D> tree = subPlane.getRemainingRegion().getTree(true);
+        tree.visit(new BSPTreeVisitor<Euclidean2D>() {
+
+            float n = 0;
+
+            @Override
+            public Order visitOrder(BSPTree<Euclidean2D> node) {
+                return reverse ? Order.PLUS_SUB_MINUS : Order.SUB_MINUS_PLUS;
+            }
+
+            @Override
+            public void visitInternalNode(BSPTree<Euclidean2D> node) {
+                n += 1f;
+                final Color color = new Color(1f - n * 0.1f, 1f - n * 0.1f * 0.5f, n * 0.1f, 1f);
+                shapeRenderer.begin();
+                final BoundaryAttribute<Euclidean2D> attribute = (BoundaryAttribute<Euclidean2D>) node.getAttribute();
+                final SubLine plusOutside = (SubLine) attribute.getPlusOutside();
+                renderSubLine(plusOutside, plane, color);
+                final SubLine plusInside = (SubLine) attribute.getPlusInside();
+                renderSubLine(plusInside, plane, color);
+                shapeRenderer.end();
+            }
+
+            private void renderSubLine(org.apache.commons.math3.geometry.euclidean.twod.SubLine subLine, Plane plane, Color color) {
+                if (subLine == null) return;
+                shapeRenderer.setColor(color);
+                for (Segment segment : subLine.getSegments()) {
+                    final Vector3D start = plane.toSpace(segment.getStart());
+                    final Vector3D end = plane.toSpace(segment.getEnd());
+                    shapeRenderer.line((float) start.getX(), (float) start.getY(), (float) start.getZ(), (float) end.getX(), (float) end.getY(), (float) end.getZ());
+                }
+            }
+
+            @Override
+            public void visitLeafNode(BSPTree<Euclidean2D> node) {
+
+            }
+        });
     }
 
 //        private void renderCSGTree(CSG csg, Color color) {
