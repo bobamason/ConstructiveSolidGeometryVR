@@ -2,11 +2,11 @@ package net.masonapps.csgvr;
 
 import android.support.annotation.Nullable;
 
-import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -14,8 +14,8 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.SphereShapeBuilder;
@@ -27,7 +27,6 @@ import com.badlogic.gdx.utils.Array;
 import net.masonapps.csgvr.csg.CSG;
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
-import net.masonapps.csgvr.primitives.PolyhedronsetToLineModel;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
@@ -38,15 +37,15 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.RegionFactory;
+import org.masonapps.libgdxgooglevr.vr.VrApplicationAdapter;
 
 /**
- * Created by Bob on 5/19/2017.
+ * Created by Bob on 5/26/2017.
  */
-class CSGTest implements ApplicationListener {
+
+class CSGVRTest extends VrApplicationAdapter {
 
     private final Array<ModelInstance> instances = new Array<>();
-    private final PerspectiveCamera camera = new PerspectiveCamera();
-    private CameraInputController cameraController;
     private ModelBatch modelBatch;
     private Environment environment;
     private ShapeRenderer shapeRenderer;
@@ -66,8 +65,7 @@ class CSGTest implements ApplicationListener {
 
     @Override
     public void create() {
-        cameraController = new CameraInputController(camera);
-        Gdx.input.setInputProcessor(cameraController);
+        super.create();
         environment = new Environment();
         modelBatch = new ModelBatch();
         shapeRenderer = new ShapeRenderer();
@@ -93,11 +91,9 @@ class CSGTest implements ApplicationListener {
         final PolyhedronsSet ps3 = new Box(0.35, 1.0, 0.35).createPolyhedronsSet().translate(new Vector3D(-0.25, 0.5, 0));
 //        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(ps3, new RegionFactory<Euclidean3D>().difference(ps1, ps2));
         polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(ps1, ps2);
-//        final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet);
-//        modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f)));
-//        instances.add(new ModelInstance(modelBuilder.end()));
-
-        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
+        final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet);
+        modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f)));
+        instances.add(new ModelInstance(modelBuilder.end()));
 
 //            modelBuilder.begin();
 //            final Mesh mesh2 = CSG.toMesh();
@@ -106,25 +102,15 @@ class CSGTest implements ApplicationListener {
     }
 
     @Override
-    public void resize(int width, int height) {
-        camera.position.set(2f, 1f, 2f);
-        camera.near = 0.1f;
-        camera.up.set(0, 1, 0);
-        camera.lookAt(0, 0, 0);
-        camera.viewportWidth = width;
-        camera.viewportHeight = height;
-        camera.update();
-    }
-
-    @Override
-    public void render() {
+    public void render(Camera camera, int whichEye) {
+        super.render(camera, whichEye);
         Gdx.gl.glViewport(0, 0, (int) camera.viewportWidth, (int) camera.viewportHeight);
         Gdx.gl.glClearColor(0.15f, 0.15f, 0.15f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         light.setDirection(camera.direction);
         modelBatch.begin(camera);
-//        modelBatch.render(instances, environment);
-        modelBatch.render(instances);
+        modelBatch.render(instances, environment);
+//            modelBatch.render(instances);
         modelBatch.end();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
@@ -143,7 +129,7 @@ class CSGTest implements ApplicationListener {
         }
 
 //        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
-        
+
         if (focusedPlane != null) {
             shapeRenderer.setColor(Color.LIME);
             renderSubPlane(focusedPlane);
@@ -195,6 +181,7 @@ class CSGTest implements ApplicationListener {
 
     @Override
     public void dispose() {
+        super.dispose();
         modelBatch.dispose();
         shapeRenderer.dispose();
     }
