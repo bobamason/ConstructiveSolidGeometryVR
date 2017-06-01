@@ -2,8 +2,13 @@ package net.masonapps.csgvr.csg;
 
 import android.util.Log;
 
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttribute;
+import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -15,6 +20,7 @@ import com.badlogic.gdx.utils.ShortArray;
  */
 
 public class CSG {
+    private static final EarClippingTriangulator triangulator = new EarClippingTriangulator();
 
     public BSPTreeNode tree;
 
@@ -117,39 +123,13 @@ public class CSG {
 
     public static Mesh polygonsToMesh(Array<CSGPolygon> polygons) {
         final FloatArray vertices = new FloatArray();
+        final FloatArray tempVerts = new FloatArray();
         final ShortArray indices = new ShortArray();
         final Vertex tempVertex = new Vertex();
-        int index = 0;
+        int startIndex = 0;
         for (CSGPolygon polygon : polygons) {
-            for (int i = 2; i < polygon.getVertexCount(); i++) {
-                if (i < 3) {
-                    tempVertex.set(polygon.vertices.get(i - 2));
-                    vertices.add(tempVertex.position.x);
-                    vertices.add(tempVertex.position.y);
-                    vertices.add(tempVertex.position.z);
-                    vertices.add(tempVertex.normal.x);
-                    vertices.add(tempVertex.normal.y);
-                    vertices.add(tempVertex.normal.z);
-                    vertices.add(tempVertex.uv.x);
-                    vertices.add(tempVertex.uv.y);
-                    indices.add(index);
-                    index++;
-
-                    tempVertex.set(polygon.vertices.get(i - 1));
-                    vertices.add(tempVertex.position.x);
-                    vertices.add(tempVertex.position.y);
-                    vertices.add(tempVertex.position.z);
-                    vertices.add(tempVertex.normal.x);
-                    vertices.add(tempVertex.normal.y);
-                    vertices.add(tempVertex.normal.z);
-                    vertices.add(tempVertex.uv.x);
-                    vertices.add(tempVertex.uv.y);
-                    indices.add(index);
-                    index++;
-                } else {
-                    indices.add(index - 2);
-                    indices.add(index - 1);
-                }
+            tempVerts.clear();
+            for (int i = 0; i < polygon.getVertexCount(); i++) {
                 tempVertex.set(polygon.vertices.get(i));
                 vertices.add(tempVertex.position.x);
                 vertices.add(tempVertex.position.y);
@@ -159,9 +139,13 @@ public class CSG {
                 vertices.add(tempVertex.normal.z);
                 vertices.add(tempVertex.uv.x);
                 vertices.add(tempVertex.uv.y);
-                indices.add(index);
-                index++;
             }
+            final ShortArray tempIndices = triangulator.computeTriangles(tempVerts);
+            for (int j = 0; j < tempIndices.size; j++) {
+                final int index = startIndex + tempIndices.get(j);
+                indices.add(index);
+            }
+            startIndex = vertices.size / 6;
         }
         final Mesh mesh = new Mesh(false, vertices.size, indices.size, VertexAttribute.Position(), VertexAttribute.Normal(), VertexAttribute.TexCoords(0));
         mesh.setIndices(indices.toArray());
@@ -229,6 +213,13 @@ public class CSG {
         mesh.setIndices(indices.toArray());
         mesh.setVertices(vertices.toArray());
         return mesh;
+    }
+
+    public static ModelInstance toModelInstance(CSG csg, Material material) {
+        final ModelBuilder modelBuilder = new ModelBuilder();
+        modelBuilder.begin();
+        modelBuilder.part("", toMesh(csg), GL20.GL_TRIANGLES, material);
+        return new ModelInstance(modelBuilder.end());
     }
 
     public CSG union(CSG other) {

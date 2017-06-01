@@ -1,6 +1,14 @@
 package net.masonapps.csgvr;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Mesh;
+import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
@@ -89,5 +97,27 @@ public class DebugUtils {
 
             }
         });
+    }
+
+    public static Model createEdgeModel(Model model, Color color) {
+        final ModelBuilder modelBuilder = new ModelBuilder();
+        modelBuilder.begin();
+        final MeshPartBuilder part = modelBuilder.part("edges", GL20.GL_LINES, VertexAttributes.Usage.Position, new Material(ColorAttribute.createDiffuse(color)));
+        for (Mesh mesh : model.meshes) {
+            final int vertexSize = mesh.getVertexSize() / 4;
+            final float[] vertices = new float[mesh.getNumVertices() * vertexSize];
+            mesh.getVertices(vertices);
+            final short[] indices = new short[mesh.getNumIndices()];
+            mesh.getIndices(indices);
+            for (int i = 0; i < indices.length; i += 3) {
+                final int a = indices[i] * vertexSize;
+                final int b = indices[i + 1] * vertexSize;
+                final int c = indices[i + 2] * vertexSize;
+                part.line(vertices[a], vertices[a + 1], vertices[a + 2], vertices[b], vertices[b + 1], vertices[b + 2]);
+                part.line(vertices[b], vertices[b + 1], vertices[b + 2], vertices[c], vertices[c + 1], vertices[c + 2]);
+                part.line(vertices[c], vertices[c + 1], vertices[c + 2], vertices[a], vertices[a + 1], vertices[a + 2]);
+            }
+        }
+        return modelBuilder.end();
     }
 }

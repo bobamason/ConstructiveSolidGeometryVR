@@ -2,10 +2,13 @@ package net.masonapps.csgvr.primitives;
 
 import android.util.Log;
 
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttribute;
+import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.math.EarClippingTriangulator;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.DelaunayTriangulator;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.FloatArray;
@@ -18,17 +21,13 @@ import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Euclidean2D;
 import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
-import org.apache.commons.math3.geometry.euclidean.twod.SubLine;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.BSPTree;
 import org.apache.commons.math3.geometry.partitioning.BSPTreeVisitor;
 import org.apache.commons.math3.geometry.partitioning.BoundaryAttribute;
-import org.apache.commons.math3.geometry.partitioning.BoundaryProjection;
-import org.apache.commons.math3.geometry.partitioning.Region;
 import org.apache.commons.math3.geometry.partitioning.SubHyperplane;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -92,17 +91,25 @@ public class ConversionUtils {
         vertices.add((float) normal.getZ());
     }
 
+    public static ModelInstance polyhedronsSetToModelInstance(PolyhedronsSet polyhedronsSet, Material material) {
+        final Mesh mesh = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet);
+        final ModelBuilder modelBuilder = new ModelBuilder();
+        modelBuilder.begin();
+        modelBuilder.part("mesh", mesh, GL20.GL_TRIANGLES, material);
+        return new ModelInstance(modelBuilder.end());
+    }
+
     private static class MeshCreationTreeVisitor implements BSPTreeVisitor<Euclidean3D> {
 
         private final FloatArray vertices;
         private final ShortArray indices;
-        private final EarClippingTriangulator triangulator;
+        private final DelaunayTriangulator triangulator;
         private int startIndex;
 
         public MeshCreationTreeVisitor(FloatArray vertices, ShortArray indices) {
             this.vertices = vertices;
             this.indices = indices;
-            triangulator = new EarClippingTriangulator();
+            triangulator = new DelaunayTriangulator();
             startIndex = 0;
         }
 
@@ -139,55 +146,78 @@ public class ConversionUtils {
 
             Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "loop count " + loops.length);
 
-            if (loops.length == 1) {
-                final Vector2D[] loop = loops[0];
-                if (loop.length >= 3 && loop[0] != null) {
-                    addLoopVertices(plane, loop, reverse);
+            final FloatArray tempVerts = new FloatArray();
+            for (Vector2D[] loop : loops) {
+
+                for (Vector2D v : loop) {
+                    addVertex(plane.toSpace(v), plane.getNormal().scalarMultiply(reverse ? -1 : 1), this.vertices);
+                    tempVerts.add((float) v.getX());
+                    tempVerts.add((float) v.getY());
                 }
-            } else {
-
-                for (Vector2D[] loop : loops) {
-                    if (loop.length < 3 || loop[0] == null)
-                        continue;
-
-                    lines.clear();
-                    for (int i = 0; i < loop.length; i++) {
-                        lines.add(new SubLine(loop[i], loop[(i + 1) % loop.length], tolerance));
-                    }
-                    boolean isHole = false;
-                    final PolygonsSet p = new PolygonsSet(lines, tolerance);
-                    for (PolygonsSet polygonsSet : polygonsMap.keySet()) {
-                        isHole = true;
-                        for (Vector2D v : loop) {
-                            if (polygonsSet.checkPoint(v) != Region.Location.INSIDE)
-                                isHole = false;
-                            break;
-                        }
-                        if (isHole) {
-                            Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "hole found!!!!!!");
-                            BoundaryProjection<Euclidean2D> projection = polygonsSet.projectToBoundary(loop[loop.length - 1]);
-                            if (projection.getProjected() == null) break;
-                            List<Vector2D> list = polygonsMap.get(polygonsSet);
-                            list.add((Vector2D) projection.getProjected());
-                            for (int j = loop.length - 1; j >= 0; j--) {
-                                list.add(loop[j]);
-                            }
-                            list.add((Vector2D) projection.getProjected());
-                            break;
-                        }
-                    }
-                    if (!isHole) {
-                        Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "no hole found");
-                        polygonsMap.put(p, new ArrayList<>(Arrays.asList(loop)));
-                    }
-                }
-
-                for (List<Vector2D> list : polygonsMap.values()) {
-                    final Vector2D[] array = new Vector2D[list.size()];
-                    addLoopVertices(plane, list.toArray(array), reverse);
-                }
-
             }
+
+
+            Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "vertex count " + tempVerts.size / 2);
+
+            final ShortArray tempIndices = triangulator.computeTriangles(tempVerts, false);
+            if (!reverse) {
+                tempIndices.reverse();
+            }
+            for (int j = 0; j < tempIndices.size; j++) {
+                final int index = startIndex + tempIndices.get(j);
+                indices.add(index);
+            }
+            startIndex = this.vertices.size / 6;
+
+//            if (loops.length == 1) {
+//                final Vector2D[] loop = loops[0];
+//                if (loop.length >= 3 && loop[0] != null) {
+//                    addLoopVertices(plane, loop, reverse);
+//                }
+//            } else {
+//
+//                for (Vector2D[] loop : loops) {
+//                    if (loop.length < 3 || loop[0] == null)
+//                        continue;
+//
+//                    lines.clear();
+//                    for (int i = 0; i < loop.length; i++) {
+//                        lines.add(new SubLine(loop[i], loop[(i + 1) % loop.length], tolerance));
+//                    }
+//                    boolean isHole = false;
+//                    final PolygonsSet p = new PolygonsSet(lines, tolerance);
+//                    for (PolygonsSet polygonsSet : polygonsMap.keySet()) {
+//                        isHole = true;
+//                        for (Vector2D v : loop) {
+//                            if (polygonsSet.checkPoint(v) != Region.Location.INSIDE)
+//                                isHole = false;
+//                            break;
+//                        }
+//                        if (isHole) {
+//                            Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "hole found!!!!!!");
+//                            BoundaryProjection<Euclidean2D> projection = polygonsSet.projectToBoundary(loop[loop.length - 1]);
+//                            if (projection.getProjected() == null) break;
+//                            List<Vector2D> list = polygonsMap.get(polygonsSet);
+//                            list.add((Vector2D) projection.getProjected());
+//                            for (int j = loop.length - 1; j >= 0; j--) {
+//                                list.add(loop[j]);
+//                            }
+//                            list.add((Vector2D) projection.getProjected());
+//                            break;
+//                        }
+//                    }
+//                    if (!isHole) {
+//                        Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "no hole found");
+//                        polygonsMap.put(p, new ArrayList<>(Arrays.asList(loop)));
+//                    }
+//                }
+//
+//                for (List<Vector2D> list : polygonsMap.values()) {
+//                    final Vector2D[] array = new Vector2D[list.size()];
+//                    addLoopVertices(plane, list.toArray(array), reverse);
+//                }
+//
+//            }
         }
 
         private void addLoopVertices(Plane plane, Vector2D[] loop, boolean reverse) {
@@ -201,7 +231,7 @@ public class ConversionUtils {
 
             Log.i(MeshCreationTreeVisitor.class.getSimpleName() + "->handleSubPlane", "vertex count " + tempVerts.size / 2);
 
-            final ShortArray tempIndices = triangulator.computeTriangles(tempVerts);
+            final ShortArray tempIndices = triangulator.computeTriangles(tempVerts, false);
             if (!reverse) {
                 tempIndices.reverse();
             }

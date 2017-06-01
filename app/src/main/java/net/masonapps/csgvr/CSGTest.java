@@ -7,27 +7,22 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.SphereShapeBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 
-import net.masonapps.csgvr.csg.CSG;
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
-import net.masonapps.csgvr.primitives.PolyhedronsetToLineModel;
+import net.masonapps.csgvr.ui.TransformManipulator;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
@@ -50,19 +45,11 @@ class CSGTest implements ApplicationListener {
     private ModelBatch modelBatch;
     private Environment environment;
     private ShapeRenderer shapeRenderer;
-    private CSG csg1;
     private DirectionalLight light;
     private PolyhedronsSet polyhedronsSet;
     @Nullable
     private SubPlane focusedPlane = null;
-    private ModelBuilder modelBuilder;
-
-    private static Model createModel(ModelBuilder modelBuilder, float radius) {
-        modelBuilder.begin();
-        final MeshPartBuilder part = modelBuilder.part("model", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, new Material(ColorAttribute.createDiffuse(Color.BLUE)));
-        SphereShapeBuilder.build(part, radius * 2f, radius * 2f, radius * 2f, 24, 12);
-        return modelBuilder.end();
-    }
+    private TransformManipulator transformManipulator;
 
     @Override
     public void create() {
@@ -78,31 +65,18 @@ class CSGTest implements ApplicationListener {
         light.setDirection(new Vector3(1, -1, -1).nor());
         environment.add(light);
 
-        modelBuilder = new ModelBuilder();
+        final PolyhedronsSet ps1 = new Box(2, 0.25, 1).createPolyhedronsSet();
+        final PolyhedronsSet ps2 = new Box(0.25, 1.0, 0.25).createPolyhedronsSet().translate(new Vector3D(-0.5, 0, 0));
+        final PolyhedronsSet ps3 = new Box(0.25, 1.0, 0.25).createPolyhedronsSet().translate(new Vector3D(0.5, 0, 0));
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(new RegionFactory<Euclidean3D>().difference(ps1, ps2), ps3);
 
-//            final ModelInstance s1 = new ModelInstance(createModel(modelBuilder, 1f));
-//            final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.75f, 0.75f, 0.75f);
-//            csg1 = CSG.fromMesh(s1.model.meshes.get(0), s1.transform);
-//            instances.add(s1);
-//            instances.add(s2);
+//        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
 
-        modelBuilder.begin();
-//            final Mesh mesh1 = CSG.toMesh(csg1);
-        final PolyhedronsSet ps1 = new Box().createPolyhedronsSet();
-        final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.0, 0, 0));
-        final PolyhedronsSet ps3 = new Box(0.35, 1.0, 0.35).createPolyhedronsSet().translate(new Vector3D(-0.25, 0.5, 0));
-//        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(ps3, new RegionFactory<Euclidean3D>().difference(ps1, ps2));
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(ps1, ps2);
-//        final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet);
-//        modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f)));
-//        instances.add(new ModelInstance(modelBuilder.end()));
-
-        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
-
-//            modelBuilder.begin();
-//            final Mesh mesh2 = CSG.toMesh();
-//            modelBuilder.part("mesh", mesh2, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.OLIVE)));
-//            instances.add(new ModelInstance(modelBuilder.end()));
+        final Material material = new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
+        final ModelInstance modelInstance = ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, material);
+        instances.add(modelInstance);
+        transformManipulator = new TransformManipulator(modelInstance.transform);
+        instances.add(new ModelInstance(DebugUtils.createEdgeModel(modelInstance.model, Color.BLACK)));
     }
 
     @Override
@@ -123,13 +97,15 @@ class CSGTest implements ApplicationListener {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         light.setDirection(camera.direction);
         modelBatch.begin(camera);
-//        modelBatch.render(instances, environment);
-        modelBatch.render(instances);
+        modelBatch.render(instances, environment);
+//        modelBatch.render(instances);
+        transformManipulator.render(modelBatch);
         modelBatch.end();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
+            transformManipulator.rayTest(ray);
             final Vector3D point = ConversionUtils.convertVector3(ray.origin);
             final Vector3D point2 = ConversionUtils.convertVector3(ray.direction).add(point);
             final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
@@ -163,25 +139,6 @@ class CSGTest implements ApplicationListener {
         }
         shapeRenderer.end();
     }
-
-//        private void renderCSGTree(CSG csg, Color color) {
-//            final float s = 0.1f;
-//            shapeRenderer.begin();
-//            shapeRenderer.setColor(color);
-//            polygons.clear();
-//            csg.tree.getAllPolygons(polygons);
-//            for (CSGPolygon polygon : polygons) {
-//                for (Vertex vertex : polygon.vertices) {
-//                    final Vector3 v = vertex.position;
-//                    final Vector3 n;
-//                    if (polygon.plane != null) {
-//                        n = polygon.plane.normal;
-//                        shapeRenderer.line(v.x, v.y, v.z, v.x + n.x * s, v.y + n.y * s, v.z + n.z * s);
-//                    }
-//                }
-//            }
-//            shapeRenderer.end();
-//        }
 
     @Override
     public void pause() {
