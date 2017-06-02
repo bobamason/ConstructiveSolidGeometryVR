@@ -2,7 +2,6 @@ package net.masonapps.csgvr.ui;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
@@ -41,15 +40,12 @@ public class TransformManipulator {
     public boolean rayTest(Ray ray) {
         if (Intersector.intersectRaySphere(ray, transform.getTranslation(position), 1f, null)) {
             if (xArrow.performRayTest(ray)) {
-                xArrow.modelInstance.materials.get(0).set(ColorAttribute.createDiffuse(Color.WHITE));
                 return true;
             }
             if (yArrow.performRayTest(ray)) {
-                yArrow.modelInstance.materials.get(0).set(ColorAttribute.createDiffuse(Color.WHITE));
                 return true;
             }
             if (zArrow.performRayTest(ray)) {
-                zArrow.modelInstance.materials.get(0).set(ColorAttribute.createDiffuse(Color.WHITE));
                 return true;
             }
         }

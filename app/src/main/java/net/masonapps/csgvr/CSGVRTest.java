@@ -116,8 +116,8 @@ class CSGVRTest extends VrApplicationAdapter {
         shapeRenderer.setProjectionMatrix(camera.combined);
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
-            final Vector3D point = ConversionUtils.convertVector3(ray.origin);
-            final Vector3D point2 = ConversionUtils.convertVector3(ray.direction).add(point);
+            final Vector3D point = ConversionUtils.convertVector(ray.origin);
+            final Vector3D point2 = ConversionUtils.convertVector(ray.direction).add(point);
             final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
             if (subPlane != null)
                 focusedPlane = subPlane;

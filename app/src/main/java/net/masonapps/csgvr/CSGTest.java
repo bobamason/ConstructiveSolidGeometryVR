@@ -22,6 +22,7 @@ import com.badlogic.gdx.utils.Array;
 
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
+import net.masonapps.csgvr.primitives.Extrusion;
 import net.masonapps.csgvr.ui.TransformManipulator;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
@@ -50,6 +51,7 @@ class CSGTest implements ApplicationListener {
     @Nullable
     private SubPlane focusedPlane = null;
     private TransformManipulator transformManipulator;
+    private boolean doExtrude = true;
 
     @Override
     public void create() {
@@ -93,7 +95,7 @@ class CSGTest implements ApplicationListener {
     @Override
     public void render() {
         Gdx.gl.glViewport(0, 0, (int) camera.viewportWidth, (int) camera.viewportHeight);
-        Gdx.gl.glClearColor(0.15f, 0.15f, 0.15f, 1);
+        Gdx.gl.glClearColor(0.15f, 0.25f, 0.35f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         light.setDirection(camera.direction);
         modelBatch.begin(camera);
@@ -106,16 +108,15 @@ class CSGTest implements ApplicationListener {
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
             transformManipulator.rayTest(ray);
-            final Vector3D point = ConversionUtils.convertVector3(ray.origin);
-            final Vector3D point2 = ConversionUtils.convertVector3(ray.direction).add(point);
+            final Vector3D point = ConversionUtils.convertVector(ray.origin);
+            final Vector3D point2 = ConversionUtils.convertVector(ray.direction).add(point);
             final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
             if (subPlane != null)
                 focusedPlane = subPlane;
-//            if (focusedPlane != null) {
-//                final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(new Extrusion(focusedPlane, 0.2f).createPolyhedronsSet());
-//                modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
-//                instances.add(new ModelInstance(modelBuilder.end()));
-//            }
+            if (focusedPlane != null && doExtrude) {
+                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedPlane, 0.2f).createPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
+                doExtrude = false;
+            }
         }
 
 //        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
