@@ -2,15 +2,24 @@ package net.masonapps.csgvr.primitives;
 
 import android.support.annotation.NonNull;
 
+import com.badlogic.gdx.math.Matrix4;
+
+import org.apache.commons.math3.geometry.euclidean.oned.Vector1D;
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Euclidean2D;
+import org.apache.commons.math3.geometry.euclidean.twod.Line;
 import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
 import org.apache.commons.math3.geometry.euclidean.twod.SubLine;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.geometry.partitioning.BSPTree;
+import org.apache.commons.math3.geometry.partitioning.BSPTreeVisitor;
+import org.apache.commons.math3.geometry.partitioning.BoundaryAttribute;
+import org.apache.commons.math3.geometry.partitioning.Hyperplane;
+import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 import org.apache.commons.math3.geometry.partitioning.SubHyperplane;
 
 import java.util.ArrayList;
@@ -36,9 +45,9 @@ public class Extrusion extends Primitive {
     }
     
     @Override
-    public PolyhedronsSet createPolyhedronsSet() {
-//        return createUsingSubHyperplanes();
-        return createUsingFacets();
+    protected PolyhedronsSet createPolyhedronsSet(Matrix4 transform) {
+        return createUsingSubHyperplanes();
+//        return createUsingFacets();
     }
 
     @NonNull
@@ -62,48 +71,72 @@ public class Extrusion extends Primitive {
         final Plane plane = (Plane) subPlane.getHyperplane();
         final PolygonsSet remainingRegion = (PolygonsSet) subPlane.getRemainingRegion();
 
-        final List<SubHyperplane<Euclidean3D>> subHyperplanes = new ArrayList<>();
-        final Vector3D offset = plane.getNormal().scalarMultiply(depth);
-        Vector3D point = null;
+        final ArrayList<Hyperplane<Euclidean3D>> planes = new ArrayList<>();
+        final Vector3D normal = plane.getNormal();
+        final Vector3D offset = normal.scalarMultiply(depth);
         final Vector2D[][] loops = remainingRegion.getVertices();
+
+        remainingRegion.getTree(true).visit(new BSPTreeVisitor<Euclidean2D>() {
+            @Override
+            public Order visitOrder(BSPTree<Euclidean2D> node) {
+                return Order.MINUS_SUB_PLUS;
+            }
+
+            @Override
+            public void visitInternalNode(BSPTree<Euclidean2D> node) {
+                final BoundaryAttribute<Euclidean2D> attribute = (BoundaryAttribute<Euclidean2D>) node.getAttribute();
+                if (attribute.getPlusOutside() != null) {
+                    final SubLine plusOutside = (SubLine) attribute.getPlusOutside();
+                    final Vector3D p1 = plane.toSpace(((Line) plusOutside.getHyperplane()).toSpace(new Vector1D(0)));
+                    final Vector3D p2 = plane.toSpace(((Line) plusOutside.getHyperplane()).toSpace(new Vector1D(1)));
+                    planes.add(new Plane(p1, p2, p1.add(normal), tolerance));
+                }
+                if (attribute.getPlusInside() != null) {
+                    final SubLine plusInside = (SubLine) attribute.getPlusOutside();
+                    final Vector3D p1 = plane.toSpace(((Line) plusInside.getHyperplane()).toSpace(new Vector1D(0)));
+                    final Vector3D p2 = plane.toSpace(((Line) plusInside.getHyperplane()).toSpace(new Vector1D(1)));
+                    planes.add(new Plane(p1.add(normal), p2, p1, tolerance));
+                }
+            }
+
+            @Override
+            public void visitLeafNode(BSPTree<Euclidean2D> node) {
+
+            }
+        });
 
         for (Vector2D[] loop : loops) {
             if (loop.length < 3 || loop[0] == null)
                 continue;
-            for (int i = 0; i < loop.length; i++) {
-                final List<SubHyperplane<Euclidean2D>> subLines = new ArrayList<>();
-                Vector3D p1, p2, p3, p4;
-                if (depth < -tolerance) {
-                    p1 = plane.toSpace(loop[i]);
-                    p2 = plane.toSpace(loop[(i + 1) % loop.length]);
-                    p3 = p1.add(offset);
-                    p4 = p2.add(offset);
-                } else if (depth > tolerance) {
-                    p3 = plane.toSpace(loop[i]);
-                    p4 = plane.toSpace(loop[(i + 1) % loop.length]);
-                    p1 = p3.add(offset);
-                    p2 = p4.add(offset);
+//            for (int i = 0; i < loop.length; i++) {
+//                Vector3D p1, p2, p3;
+//                p1 = plane.toSpace(loop[i]);
+//                p2 = plane.toSpace(loop[(i + 1) % loop.length]);
+//                p3 = p2.add(offset);
+////            }
+//                final Plane hyperplane = new Plane(p1, p2, p3, tolerance);
+//                planes.add(hyperplane);
+//            }
+            final Vector3D v1 = plane.toSpace(loop[0]);
+            final Vector3D v2 = plane.toSpace(loop[1]);
+            final Vector3D v3 = plane.toSpace(loop[2]);
+            if (depth > tolerance) {
+                final Plane hyperplane1 = new Plane(v3, v2, v1, tolerance);
+                planes.add(hyperplane1);
+                final Plane hyperplane2 = new Plane(v1.add(offset), v2.add(offset), v3.add(offset), tolerance);
+                planes.add(hyperplane2);
                 } else {
-                    return new PolyhedronsSet(tolerance);
+                final Plane hyperplane1 = new Plane(v1, v2, v3, tolerance);
+                planes.add(hyperplane1);
+                final Plane hyperplane2 = new Plane(v3.add(offset), v2.add(offset), v1.add(offset), tolerance);
+                planes.add(hyperplane2);
                 }
-                if (point == null)
-                    point = new Vector3D(p3.getX(), p3.getY(), p3.getZ());
-                final Plane hyperplane = new Plane(p1, p2, p3, tolerance);
-                final Vector2D subP1 = hyperplane.toSubSpace(p1);
-                final Vector2D subP2 = hyperplane.toSubSpace(p2);
-                final Vector2D subP3 = hyperplane.toSubSpace(p3);
-                final Vector2D subP4 = hyperplane.toSubSpace(p4);
-                subLines.add(new SubLine(subP1, subP2, tolerance));
-                subLines.add(new SubLine(subP1, subP3, tolerance));
-                subLines.add(new SubLine(subP3, subP4, tolerance));
-                subLines.add(new SubLine(subP4, subP2, tolerance));
-                final PolygonsSet region = new PolygonsSet(subLines, tolerance);
-                subHyperplanes.add(new SubPlane(hyperplane, region));
-            }
         }
-        subHyperplanes.add(new SubPlane(plane, remainingRegion));
-        subHyperplanes.add(new SubPlane(new Plane(point, plane.getNormal().scalarMultiply(-1), tolerance), remainingRegion));
-        return new PolyhedronsSet(subHyperplanes, tolerance);
+        final Hyperplane<Euclidean3D>[] hyperplaneArray = new Hyperplane[planes.size()];
+        for (int i = 0; i < hyperplaneArray.length; i++) {
+            hyperplaneArray[i] = planes.get(i);
+        }
+        return (PolyhedronsSet) new RegionFactory<Euclidean3D>().buildConvex(hyperplaneArray);
     }
 
     public SubPlane getSubPlane() {

@@ -22,6 +22,7 @@ import com.badlogic.gdx.utils.Array;
 
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
+import net.masonapps.csgvr.primitives.Cylinder;
 import net.masonapps.csgvr.primitives.Extrusion;
 import net.masonapps.csgvr.ui.TransformManipulator;
 
@@ -67,9 +68,9 @@ class CSGTest implements ApplicationListener {
         light.setDirection(new Vector3(1, -1, -1).nor());
         environment.add(light);
 
-        final PolyhedronsSet ps1 = new Box(2, 0.25, 1).createPolyhedronsSet();
-        final PolyhedronsSet ps2 = new Box(0.25, 1.0, 0.25).createPolyhedronsSet().translate(new Vector3D(-0.5, 0, 0));
-        final PolyhedronsSet ps3 = new Box(0.25, 1.0, 0.25).createPolyhedronsSet().translate(new Vector3D(0.5, 0, 0));
+        final PolyhedronsSet ps1 = new Box(2, 0.25f, 1).getPolyhedronsSet();
+        final PolyhedronsSet ps2 = new Cylinder(0.125f, 1.0f).getPolyhedronsSet().translate(new Vector3D(-0.5, 0, 0));
+        final PolyhedronsSet ps3 = new Cylinder(0.125f, 1.0f).getPolyhedronsSet().translate(new Vector3D(0.5, 0, 0));
         polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(new RegionFactory<Euclidean3D>().difference(ps1, ps2), ps3);
 
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
@@ -114,7 +115,7 @@ class CSGTest implements ApplicationListener {
             if (subPlane != null)
                 focusedPlane = subPlane;
             if (focusedPlane != null && doExtrude) {
-                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedPlane, 0.2f).createPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
+                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedPlane, 0.2f).getPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
                 doExtrude = false;
             }
         }

@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.DelaunayTriangulator;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.FloatArray;
@@ -46,6 +47,16 @@ public class ConversionUtils {
 
     public static Vector3 convertVector(Vector3D v) {
         return new Vector3((float) v.getX(), (float) v.getY(), (float) v.getZ());
+    }
+
+    public static Vector3D mulVector3D(Matrix4 matrix, Vector3D v) {
+        double x = v.getX();
+        double y = v.getY();
+        double z = v.getZ();
+        final float l_mat[] = matrix.val;
+        return new Vector3D(x * l_mat[Matrix4.M00] + y * l_mat[Matrix4.M01] + z * l_mat[Matrix4.M02] + l_mat[Matrix4.M03], x
+                * l_mat[Matrix4.M10] + y * l_mat[Matrix4.M11] + z * l_mat[Matrix4.M12] + l_mat[Matrix4.M13], x * l_mat[Matrix4.M20] + y
+                * l_mat[Matrix4.M21] + z * l_mat[Matrix4.M22] + l_mat[Matrix4.M23]);
     }
 
     public static Mesh polyhedronsSetToMesh(PolyhedronsSet polyhedronsSet) {

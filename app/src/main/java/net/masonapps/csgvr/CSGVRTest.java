@@ -86,9 +86,9 @@ class CSGVRTest extends VrApplicationAdapter {
 
         modelBuilder.begin();
 //            final Mesh mesh1 = CSG.toMesh(csg1);
-        final PolyhedronsSet ps1 = new Box().createPolyhedronsSet();
-        final PolyhedronsSet ps2 = new Box(0.5, 1.2, 0.5).createPolyhedronsSet().translate(new Vector3D(0.0, 0, 0));
-        final PolyhedronsSet ps3 = new Box(0.35, 1.0, 0.35).createPolyhedronsSet().translate(new Vector3D(-0.25, 0.5, 0));
+        final PolyhedronsSet ps1 = new Box().getPolyhedronsSet();
+        final PolyhedronsSet ps2 = new Box(0.5f, 1.2f, 0.5f).getPolyhedronsSet().translate(new Vector3D(0f, 0, 0));
+        final PolyhedronsSet ps3 = new Box(0.35f, 1.0f, 0.35f).getPolyhedronsSet().translate(new Vector3D(-0.25f, 0.5f, 0));
 //        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(ps3, new RegionFactory<Euclidean3D>().difference(ps1, ps2));
         polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(ps1, ps2);
         final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet);
@@ -122,7 +122,7 @@ class CSGVRTest extends VrApplicationAdapter {
             if (subPlane != null)
                 focusedPlane = subPlane;
 //            if (focusedPlane != null) {
-//                final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(new Extrusion(focusedPlane, 0.2f).createPolyhedronsSet());
+//                final Mesh mesh1 = ConversionUtils.polyhedronsSetToMesh(new Extrusion(focusedPlane, 0.2f).getPolyhedronsSet());
 //                modelBuilder.part("mesh", mesh1, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
 //                instances.add(new ModelInstance(modelBuilder.end()));
 //            }
