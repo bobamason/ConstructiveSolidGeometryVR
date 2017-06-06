@@ -23,7 +23,6 @@ import com.badlogic.gdx.utils.Array;
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.primitives.Cylinder;
-import net.masonapps.csgvr.primitives.Extrusion;
 import net.masonapps.csgvr.ui.TransformManipulator;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
@@ -68,10 +67,21 @@ class CSGTest implements ApplicationListener {
         light.setDirection(new Vector3(1, -1, -1).nor());
         environment.add(light);
 
-        final PolyhedronsSet ps1 = new Box(2, 0.25f, 1).getPolyhedronsSet();
-        final PolyhedronsSet ps2 = new Cylinder(0.125f, 1.0f).getPolyhedronsSet().translate(new Vector3D(-0.5, 0, 0));
-        final PolyhedronsSet ps3 = new Cylinder(0.125f, 1.0f).getPolyhedronsSet().translate(new Vector3D(0.5, 0, 0));
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(new RegionFactory<Euclidean3D>().difference(ps1, ps2), ps3);
+        polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
+        for (int i = 1; i < 3; i++) {
+            final Box box = new Box(2, 0.25f, 2);
+            box.rotateY(30 * i);
+            polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, box.getPolyhedronsSet());
+        }
+
+        final Cylinder cylinder = new Cylinder(0.5f, 0.5f);
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, cylinder.getPolyhedronsSet());
+
+        final Cylinder hole = new Cylinder(0.25f, 1f);
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(polyhedronsSet, hole.getPolyhedronsSet());
+        final Cylinder rounded = new Cylinder((float) (Math.sqrt(2) * 0.95), 0.5f);
+        rounded.divisions = 24;
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().intersection(polyhedronsSet, rounded.getPolyhedronsSet());
 
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
 
@@ -114,10 +124,10 @@ class CSGTest implements ApplicationListener {
             final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
             if (subPlane != null)
                 focusedPlane = subPlane;
-            if (focusedPlane != null && doExtrude) {
-                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedPlane, 0.2f).getPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
-                doExtrude = false;
-            }
+//            if (focusedPlane != null && doExtrude) {
+//                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedPlane, 0.2f).getPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
+//                doExtrude = false;
+//            }
         }
 
 //        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);

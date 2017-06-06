@@ -1,6 +1,7 @@
 package net.masonapps.csgvr.primitives;
 
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
@@ -32,14 +33,15 @@ public class Cylinder extends Primitive {
     protected PolyhedronsSet createPolyhedronsSet(Matrix4 transform) {
 
         final Plane[] planes = new Plane[divisions + 2];
-        planes[0] = new Plane(new Vector3D(0, height / 2.0, 0), ConversionUtils.mulVector3D(transform, new Vector3D(0, 1, 0)), tolerance);
-        planes[1] = new Plane(new Vector3D(0, -height / 2.0, 0), ConversionUtils.mulVector3D(transform, new Vector3D(0, -1, 0)), tolerance);
+        Matrix4 rotMatrix = new Matrix4(transform.getRotation(new Quaternion()));
+        planes[0] = new Plane(ConversionUtils.mulVector3D(transform, new Vector3D(0, height / 2.0, 0)), ConversionUtils.mulVector3D(rotMatrix, new Vector3D(0, 1, 0)), tolerance);
+        planes[1] = new Plane(ConversionUtils.mulVector3D(transform, new Vector3D(0, -height / 2.0, 0)), ConversionUtils.mulVector3D(rotMatrix, new Vector3D(0, -1, 0)), tolerance);
         for (int i = 0; i < divisions; i++) {
             double a = (double) i / divisions * Math.PI * 2.0;
             double x = radius * Math.cos(a);
             double y = 0;
             double z = radius * Math.sin(a);
-            planes[i + 2] = new Plane(new Vector3D(x, y, z), ConversionUtils.mulVector3D(transform, new Vector3D(x, y, z)), tolerance);
+            planes[i + 2] = new Plane(ConversionUtils.mulVector3D(transform, new Vector3D(x, y, z)), ConversionUtils.mulVector3D(rotMatrix, new Vector3D(x, y, z)), tolerance);
         }
         return (PolyhedronsSet) new RegionFactory<Euclidean3D>().buildConvex(planes);
     }
