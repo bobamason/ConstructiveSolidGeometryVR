@@ -32,7 +32,7 @@ public class Arrow {
                 v.x, v.y, v.z,
                 0.1f, 0.1f, 8,
                 GL20.GL_TRIANGLES,
-                new Material(ColorAttribute.createDiffuse(color), new DepthTestAttribute(0, false), new BlendingAttribute()),
+                new Material(ColorAttribute.createDiffuse(color), new DepthTestAttribute(0, false), new BlendingAttribute(0.25f)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal));
         bounds = new BoundingBox();
         modelInstance.calculateBoundingBox(bounds);

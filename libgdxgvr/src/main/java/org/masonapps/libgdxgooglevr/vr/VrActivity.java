@@ -33,6 +33,7 @@ import com.badlogic.gdx.utils.Clipboard;
 import com.badlogic.gdx.utils.GdxNativesLoader;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.SnapshotArray;
+import com.google.vr.ndk.base.GvrLayout;
 import com.google.vr.sdk.base.GvrActivity;
 import com.google.vr.sdk.base.GvrView;
 import com.google.vr.sdk.controller.Controller;
@@ -67,6 +68,7 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
     protected ControllerManager controllerManager;
     protected Controller controller;
     AndroidClipboard clipboard;
+    private GvrLayout gvrLayout;
 //    private int wasFocusChanged = -1;
 //    private boolean isWaitingForAudio = false;
 
@@ -74,7 +76,9 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         GvrView gvrView = new GvrView(this);
-        setContentView(gvrView);
+        gvrLayout = new GvrLayout(this);
+        gvrLayout.setPresentationView(gvrView);
+        setContentView(gvrLayout);
         setGvrView(gvrView);
         final EventListener listener = new EventListener();
         controllerManager = new ControllerManager(this, listener);
@@ -170,6 +174,7 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
                 graphics.pause();
             }
         });
+        gvrLayout.onPause();
 
         input.onPause();
 
@@ -184,6 +189,7 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
     @Override
     protected void onResume() {
         super.onResume();
+        gvrLayout.onResume();
 
         assert getGvrView() != null;
 
@@ -229,7 +235,17 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
             });
             gvrView.shutdown();
         }
+        if (gvrLayout != null) {
+            gvrLayout.shutdown();
+            gvrLayout = null;
+        }
         super.onDestroy();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        gvrLayout.onBackPressed();
     }
 
     @Override

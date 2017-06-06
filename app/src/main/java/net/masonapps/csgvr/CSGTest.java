@@ -23,6 +23,7 @@ import com.badlogic.gdx.utils.Array;
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.primitives.Cylinder;
+import net.masonapps.csgvr.ui.Grid;
 import net.masonapps.csgvr.ui.TransformManipulator;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
@@ -52,6 +53,7 @@ class CSGTest implements ApplicationListener {
     private SubPlane focusedPlane = null;
     private TransformManipulator transformManipulator;
     private boolean doExtrude = true;
+    private Grid grid;
 
     @Override
     public void create() {
@@ -66,6 +68,8 @@ class CSGTest implements ApplicationListener {
         light.setColor(Color.WHITE);
         light.setDirection(new Vector3(1, -1, -1).nor());
         environment.add(light);
+
+        grid = Grid.newInstance();
 
         polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
         for (int i = 1; i < 3; i++) {
@@ -105,17 +109,36 @@ class CSGTest implements ApplicationListener {
 
     @Override
     public void render() {
+        update();
+
         Gdx.gl.glViewport(0, 0, (int) camera.viewportWidth, (int) camera.viewportHeight);
         Gdx.gl.glClearColor(0.15f, 0.25f, 0.35f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+
         light.setDirection(camera.direction);
+
         modelBatch.begin(camera);
         modelBatch.render(instances, environment);
-//        modelBatch.render(instances);
+        if (grid.isRenderingEnabled())
+            modelBatch.render(grid.modelInstance);
         transformManipulator.render(modelBatch);
         modelBatch.end();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
+
+//        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
+
+        if (focusedPlane != null) {
+            shapeRenderer.setColor(Color.LIME);
+            renderSubPlane(focusedPlane);
+            grid.setRenderingEnabled(true);
+            grid.setToPlane((Plane) focusedPlane.getHyperplane());
+        } else {
+            grid.setRenderingEnabled(false);
+        }
+    }
+
+    private void update() {
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
             transformManipulator.rayTest(ray);
@@ -128,13 +151,6 @@ class CSGTest implements ApplicationListener {
 //                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedPlane, 0.2f).getPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
 //                doExtrude = false;
 //            }
-        }
-
-//        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
-        
-        if (focusedPlane != null) {
-            shapeRenderer.setColor(Color.LIME);
-            renderSubPlane(focusedPlane);
         }
     }
 
