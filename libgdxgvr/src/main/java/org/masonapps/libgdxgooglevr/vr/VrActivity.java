@@ -1,14 +1,17 @@
 package org.masonapps.libgdxgooglevr.vr;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.Handler;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 
@@ -21,7 +24,6 @@ import com.badlogic.gdx.LifecycleListener;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.backends.android.AndroidApplicationBase;
-import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.badlogic.gdx.backends.android.AndroidClipboard;
 import com.badlogic.gdx.backends.android.AndroidEventListener;
 import com.badlogic.gdx.backends.android.AndroidFiles;
@@ -33,21 +35,21 @@ import com.badlogic.gdx.utils.Clipboard;
 import com.badlogic.gdx.utils.GdxNativesLoader;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.SnapshotArray;
+import com.google.vr.cardboard.FullscreenMode;
 import com.google.vr.ndk.base.GvrLayout;
-import com.google.vr.sdk.base.GvrActivity;
-import com.google.vr.sdk.base.GvrView;
+import com.google.vr.sdk.base.AndroidCompat;
 import com.google.vr.sdk.controller.Controller;
 import com.google.vr.sdk.controller.ControllerManager;
+import com.google.vrtoolkit.cardboard.ScreenOnFlagHelper;
 
 import org.masonapps.libgdxgooglevr.GdxVr;
 
-import java.lang.reflect.Method;
-
 /**
  * Created by Bob on 10/9/2016.
+ * based on AndroidApplication originally written by mzechner
  */
 
-public class VrActivity extends GvrActivity implements AndroidApplicationBase {
+public class VrActivity extends Activity implements AndroidApplicationBase {
     static {
         GdxNativesLoader.load();
     }
@@ -56,6 +58,7 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
     protected final Array<Runnable> executedRunnables = new Array<Runnable>();
     protected final SnapshotArray<LifecycleListener> lifecycleListeners = new SnapshotArray<>();
     private final Array<AndroidEventListener> androidEventListeners = new Array<AndroidEventListener>();
+    private final ScreenOnFlagHelper screenOnFlagHelper = new ScreenOnFlagHelper(this);
     public Handler handler;
     protected VrGraphics graphics;
     protected VrAndroidInput input;
@@ -69,17 +72,32 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
     protected Controller controller;
     AndroidClipboard clipboard;
     private GvrLayout gvrLayout;
+    private GLSurfaceView surfaceView;
+    private FullscreenMode fullscreenMode;
 //    private int wasFocusChanged = -1;
 //    private boolean isWaitingForAudio = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        GvrView gvrView = new GvrView(this);
+        this.requestWindowFeature(1);
+        this.fullscreenMode = new FullscreenMode(this.getWindow());
+        this.screenOnFlagHelper.setScreenAlwaysOn(true);
+
+        AndroidCompat.setSustainedPerformanceMode(this, true);
+        AndroidCompat.setVrModeEnabled(this, true);
+        surfaceView = new GLSurfaceView(this);
         gvrLayout = new GvrLayout(this);
-        gvrLayout.setPresentationView(gvrView);
+        gvrLayout.setPresentationView(surfaceView);
+
+//        if (getGvrLayout().setAsyncReprojectionEnabled(true)) {
+////            // Async reprojection decouples the app framerate from the display framerate,
+////            // allowing immersive interaction even at the throttled clockrates set by
+////            // sustained performance mode.
+//            Log.d(VrActivity.class.getSimpleName(), "Async Reprojection Enabled");
+//            AndroidCompat.setSustainedPerformanceMode(this, true);
+//        }
         setContentView(gvrLayout);
-        setGvrView(gvrView);
         final EventListener listener = new EventListener();
         controllerManager = new ControllerManager(this, listener);
         controller = controllerManager.getController();
@@ -87,54 +105,43 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
     }
 
     public void initialize(VrApplicationAdapter adapter) {
-        AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
-        initialize(adapter, config);
-    }
-
-    public void initialize(VrApplicationAdapter adapter, AndroidApplicationConfiguration config) {
-        init(adapter, config);
-    }
-
-    private void init(VrApplicationAdapter adapter, AndroidApplicationConfiguration config) {
         if (this.getVersion() < MINIMUM_SDK) {
             throw new GdxRuntimeException("LibGDX requires Android API Level " + MINIMUM_SDK + " or later.");
         }
 
-        graphics = new VrGraphics(this, getGvrView(), config);
+        graphics = new VrGraphics(this, getSurfaceView(), gvrLayout.getGvrApi());
         input = VrAndroidInput.newInstance(this);
         input.setController(controller);
 //        audio = new AndroidAudio(this, config);
-        this.getFilesDir();
         files = new AndroidFiles(this.getAssets(), this.getFilesDir().getAbsolutePath());
         net = new AndroidNet(this);
         this.vrApplicationAdapter = adapter;
         this.handler = new Handler();
 
-        Gdx.app = this;
-        Gdx.input = this.getInput();
-        Gdx.audio = this.getAudio();
-        Gdx.files = this.getFiles();
-        Gdx.graphics = this.getGraphics();
-        Gdx.net = this.getNet();
-    }
 
-//    protected void hideStatusBar(boolean hide) {
-//        if (!hide || getVersion() < 11) return;
-//
-//        View rootView = getWindow().getDecorView();
-//
-//        try {
-//            Method m = View.class.getMethod("setSystemUiVisibility", int.class);
-//            if (getVersion() <= 13) m.invoke(rootView, 0x0);
-//            m.invoke(rootView, 0x1);
-//        } catch (Exception e) {
-//            log("AndroidApplication", "Can't hide status bar", e);
-//        }
-//    }
+        Gdx.app = this;
+        Gdx.input = getInput();
+        Gdx.audio = getAudio();
+        Gdx.files = getFiles();
+        Gdx.graphics = getGraphics();
+        Gdx.gl = getGraphics().getGL20();
+        Gdx.gl20 = getGraphics().getGL20();
+        Gdx.net = getNet();
+
+        GdxVr.app = this;
+        GdxVr.input = input;
+        GdxVr.audio = getAudio();
+        GdxVr.files = getFiles();
+        GdxVr.graphics = graphics;
+        GdxVr.gl = getGraphics().getGL20();
+        GdxVr.gl20 = getGraphics().getGL20();
+        GdxVr.net = getNet();
+    }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        this.fullscreenMode.onWindowFocusChanged(hasFocus);
 //        if (hasFocus) {
 //            this.wasFocusChanged = 1;
 //            if (this.isWaitingForAudio) {
@@ -150,31 +157,28 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
     @TargetApi(19)
     @Override
     public void useImmersiveMode(boolean use) {
-        if (!use || getVersion() < Build.VERSION_CODES.KITKAT) return;
-
-        View view = getWindow().getDecorView();
-        try {
-            Method m = View.class.getMethod("setSystemUiVisibility", int.class);
-            int code = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-            m.invoke(view, code);
-        } catch (Exception e) {
-            log("AndroidApplication", "Can't set immersive mode", e);
-        }
+        if (use)
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
 
     @Override
     protected void onPause() {
         // calls to setContinuousRendering(false) from other thread (ex: GLThread)
         // will be ignored at this point...
-        getGvrView().queueEvent(new Runnable() {
+        getSurfaceView().queueEvent(new Runnable() {
             @Override
             public void run() {
                 graphics.pause();
             }
         });
         gvrLayout.onPause();
+        this.screenOnFlagHelper.stop();
 
         input.onPause();
 
@@ -191,22 +195,33 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
         super.onResume();
         gvrLayout.onResume();
 
-        assert getGvrView() != null;
+
+        this.fullscreenMode.goFullscreen();
+        this.screenOnFlagHelper.start();
 
         Gdx.app = this;
-        Gdx.input = this.getInput();
-        Gdx.audio = this.getAudio();
-        Gdx.files = this.getFiles();
-        Gdx.graphics = this.getGraphics();
-        Gdx.net = this.getNet();
+        Gdx.input = getInput();
+        Gdx.audio = getAudio();
+        Gdx.files = getFiles();
+        Gdx.graphics = getGraphics();
+        Gdx.gl = getGraphics().getGL20();
+        Gdx.gl20 = getGraphics().getGL20();
+        Gdx.net = getNet();
 
-        assert GdxVr.app != null;
+        GdxVr.app = this;
+        GdxVr.input = input;
+        GdxVr.audio = getAudio();
+        GdxVr.files = getFiles();
+        GdxVr.graphics = graphics;
+        GdxVr.gl = getGraphics().getGL20();
+        GdxVr.gl20 = getGraphics().getGL20();
+        GdxVr.net = getNet();
 
         input.onResume();
 
 
         if (!firstResume) {
-            getGvrView().queueEvent(new Runnable() {
+            getSurfaceView().queueEvent(new Runnable() {
                 @Override
                 public void run() {
                     graphics.resume();
@@ -225,15 +240,15 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
 
     @Override
     protected void onDestroy() {
-        final GvrView gvrView = getGvrView();
-        if (gvrView != null && graphics != null) {
-            gvrView.queueEvent(new Runnable() {
+        final GLSurfaceView surfaceView = getSurfaceView();
+        if (surfaceView != null && graphics != null) {
+            graphics.shutdown();
+            surfaceView.queueEvent(new Runnable() {
                 @Override
                 public void run() {
                     graphics.destroy();
                 }
             });
-            gvrView.shutdown();
         }
         if (gvrLayout != null) {
             gvrLayout.shutdown();
@@ -258,6 +273,16 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
     protected void onStop() {
         controllerManager.stop();
         super.onStop();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        return keyCode == 24 || keyCode == 25;
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        return keyCode == 24 || keyCode == 25;
     }
 
     @Override
@@ -474,15 +499,12 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
         return this.handler;
     }
 
-    @Override
-    public void onCardboardTrigger() {
-        getGvrView().queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                input.onCardboardTrigger();
-                VrActivity.this.vrApplicationAdapter.onCardboardTrigger();
-            }
-        });
+    public GvrLayout getGvrLayout() {
+        return gvrLayout;
+    }
+
+    public GLSurfaceView getSurfaceView() {
+        return surfaceView;
     }
 
     private class EventListener extends Controller.EventListener
@@ -503,7 +525,7 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
         @Override
         public void onConnectionStateChanged(int state) {
             connectionState = state;
-            getGvrView().queueEvent(this);
+            getSurfaceView().queueEvent(this);
         }
 
         @Override
@@ -515,7 +537,7 @@ public class VrActivity extends GvrActivity implements AndroidApplicationBase {
 
         @Override
         public void onUpdate() {
-            getGvrView().queueEvent(this);
+            getSurfaceView().queueEvent(this);
         }
 
         // Update the various TextViews in the UI thread.
