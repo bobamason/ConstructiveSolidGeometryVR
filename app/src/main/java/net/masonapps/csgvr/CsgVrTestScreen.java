@@ -5,7 +5,6 @@ import android.support.annotation.Nullable;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
@@ -14,15 +13,16 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
-import com.badlogic.gdx.utils.Array;
+import com.google.vr.sdk.controller.Controller;
 
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.primitives.Cylinder;
 import net.masonapps.csgvr.ui.Grid;
-import net.masonapps.csgvr.ui.TransformManipulator;
+import net.masonapps.csgvr.ui.Rotator;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
@@ -34,8 +34,12 @@ import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 import org.masonapps.libgdxgooglevr.GdxVr;
+import org.masonapps.libgdxgooglevr.gfx.Entity;
 import org.masonapps.libgdxgooglevr.gfx.VrGame;
 import org.masonapps.libgdxgooglevr.gfx.VrWorldScreen;
+import org.masonapps.libgdxgooglevr.input.DaydreamButtonEvent;
+import org.masonapps.libgdxgooglevr.input.DaydreamControllerInputListener;
+import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
 
 /**
  * Created by Bob on 6/12/2017.
@@ -43,19 +47,42 @@ import org.masonapps.libgdxgooglevr.gfx.VrWorldScreen;
 
 public class CsgVrTestScreen extends VrWorldScreen {
 
-    private final Array<ModelInstance> instances = new Array<>();
+    private final Rotator rotator;
+    private final Entity entity;
+    private final Matrix4 tempM = new Matrix4();
+    private final Ray tempRay = new Ray();
     private ModelBatch modelBatch;
-    private Environment environment;
     private ShapeRenderer shapeRenderer;
     private DirectionalLight light;
     private PolyhedronsSet polyhedronsSet;
     @Nullable
     private SubPlane focusedPlane = null;
-    private TransformManipulator transformManipulator;
+    //    private TransformManipulator transformManipulator;
     private Grid grid;
+    @Nullable
+    private SubPlane selectedPlane = null;
+    private DaydreamControllerInputListener listener = new DaydreamControllerInputListener() {
+        @Override
+        public void onConnectionStateChange(int connectionState) {
+
+        }
+
+        @Override
+        public void onButtonEvent(Controller controller, DaydreamButtonEvent event) {
+            if (event.button == DaydreamButtonEvent.BUTTON_TOUCHPAD && event.action == DaydreamButtonEvent.ACTION_DOWN) {
+                selectedPlane = focusedPlane;
+            }
+        }
+
+        @Override
+        public void onTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
+
+        }
+    };
 
     public CsgVrTestScreen(VrGame game) {
         super(game);
+        rotator = new Rotator();
         environment = new Environment();
         modelBatch = new ModelBatch();
         shapeRenderer = new ShapeRenderer();
@@ -67,6 +94,7 @@ public class CsgVrTestScreen extends VrWorldScreen {
         environment.add(light);
 
         grid = Grid.newInstance();
+        getWorld().add(grid);
 
         polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
         for (int i = 1; i < 3; i++) {
@@ -87,66 +115,64 @@ public class CsgVrTestScreen extends VrWorldScreen {
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
 
         final Material material = new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
-        final ModelInstance modelInstance = ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, material);
-        instances.add(modelInstance);
-        transformManipulator = new TransformManipulator(modelInstance.transform);
-        instances.add(new ModelInstance(DebugUtils.createEdgeModel(modelInstance.model, Color.BLACK)));
+        entity = getWorld().add(new Entity(ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, material)));
+//        transformManipulator = new TransformManipulator(entity.transform);
+        getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(entity.modelInstance.model, Color.BLACK)))).setLightingEnabled(false);
     }
 
     @Override
     public void show() {
-
+        GdxVr.input.getDaydreamControllerHandler().addListener(rotator);
+        GdxVr.input.getDaydreamControllerHandler().addListener(listener);
     }
 
     @Override
     public void hide() {
-
-    }
-
-    @Override
-    public void render(Camera camera, int whichEye) {
-        super.render(camera, whichEye);
-        update();
-
-        Gdx.gl.glViewport(0, 0, (int) camera.viewportWidth, (int) camera.viewportHeight);
-        Gdx.gl.glClearColor(0.15f, 0.25f, 0.35f, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-
-        light.setDirection(camera.direction);
-
-        modelBatch.begin(camera);
-        modelBatch.render(instances, environment);
-        if (grid.isRenderingEnabled())
-            modelBatch.render(grid.modelInstance);
-        transformManipulator.render(modelBatch);
-        modelBatch.end();
-
-        shapeRenderer.setProjectionMatrix(camera.combined);
-
-//        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
-
-        if (focusedPlane != null) {
-            shapeRenderer.setColor(Color.LIME);
-            renderSubPlane(focusedPlane);
-            grid.setRenderingEnabled(true);
-            grid.setToPlane((Plane) focusedPlane.getHyperplane());
-        } else {
-            grid.setRenderingEnabled(false);
-        }
+        GdxVr.input.getDaydreamControllerHandler().removeListener(rotator);
+        GdxVr.input.getDaydreamControllerHandler().removeListener(listener);
     }
 
     @Override
     public void update() {
         super.update();
         if (Gdx.input.isTouched()) {
-            final Ray ray = GdxVr.input.getInputRay().cpy();
-            transformManipulator.rayTest(ray);
-            final Vector3D point = ConversionUtils.convertVector(ray.origin);
-            final Vector3D point2 = ConversionUtils.convertVector(ray.direction).add(point);
+            tempRay.set(GdxVr.input.getInputRay());
+//            transformManipulator.rayTest(ray);
+            tempRay.mul(tempM.set(entity.transform).inv());
+            final Vector3D point = ConversionUtils.convertVector(tempRay.origin);
+            final Vector3D point2 = ConversionUtils.convertVector(tempRay.direction).add(point);
             final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
             if (subPlane != null) {
                 focusedPlane = subPlane;
             }
+        }
+        entity.transform.idt().translate(0, -0.5f, -3.0f).rotate(rotator.getRotation());
+    }
+
+    @Override
+    public void render(Camera camera, int whichEye) {
+        super.render(camera, whichEye);
+        light.setDirection(camera.direction);
+
+//        modelBatch.begin(camera);
+//        transformManipulator.render(modelBatch);
+//        modelBatch.end();
+
+        shapeRenderer.setProjectionMatrix(camera.combined);
+
+//        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
+
+        if (focusedPlane != null) {
+            shapeRenderer.setColor(Color.CYAN);
+            renderSubPlane(focusedPlane);
+        }
+        if (selectedPlane != null) {
+            shapeRenderer.setColor(Color.LIME);
+            renderSubPlane(selectedPlane);
+            grid.setRenderingEnabled(true);
+            grid.setToPlane((Plane) selectedPlane.getHyperplane());
+        } else {
+            grid.setRenderingEnabled(false);
         }
     }
 

@@ -29,7 +29,7 @@ import org.masonapps.libgdxgooglevr.vr.VrApplicationAdapter;
  * Created by Bob on 12/22/2016.
  */
 
-public abstract class VrGame extends VrApplicationAdapter {
+public class VrGame extends VrApplicationAdapter {
     private static final String CONTROLLER_FILENAME = "ddcontroller.g3db";
     private final Vector3 controllerScale = new Vector3(10f, 10f, 10f);
     protected VrScreen screen;

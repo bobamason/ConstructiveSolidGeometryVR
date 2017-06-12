@@ -27,6 +27,7 @@ public class Grid extends Entity {
 
     private Grid(ModelInstance modelInstance) {
         super(modelInstance);
+        setLightingEnabled(false);
     }
 
     public static final Grid newInstance() {
