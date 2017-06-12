@@ -2,6 +2,7 @@ package org.masonapps.libgdxgooglevr.gfx;
 
 import android.annotation.SuppressLint;
 import android.support.annotation.CallSuper;
+import android.support.annotation.Nullable;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetDescriptor;
@@ -40,7 +41,8 @@ public abstract class VrGame extends VrApplicationAdapter {
     private ShapeRenderer shapeRenderer;
     private Color cursorColor1 = new Color(1f, 1f, 1f, 1f);
     private Color cursorColor2 = new Color(1f, 1f, 1f, 0f);
-    private ModelInstance controllerInstance;
+    @Nullable
+    private ModelInstance controllerInstance = null;
     private ModelBatch modelBatch;
 
     @Override
@@ -97,7 +99,7 @@ public abstract class VrGame extends VrApplicationAdapter {
     public void render(Camera camera, int whichEye) {
         if (screen != null) screen.render(camera, whichEye);
         super.render(camera, whichEye);
-        if (GdxVr.input.isControllerConnected() && isUiVisible) {
+        if (controllerInstance != null && GdxVr.input.isControllerConnected() && isUiVisible) {
             modelBatch.begin(camera);
             modelBatch.render(controllerInstance);
             modelBatch.end();
@@ -137,7 +139,9 @@ public abstract class VrGame extends VrApplicationAdapter {
         super.onDaydreamControllerUpdate(controller, connectionState);
         if (GdxVr.input.isControllerConnected()) {
             ray.set(GdxVr.input.getInputRay());
-            controllerInstance.transform.set(GdxVr.input.getControllerPosition(), GdxVr.input.getControllerOrientation(), controllerScale);
+            if (controllerInstance != null) {
+                controllerInstance.transform.set(GdxVr.input.getControllerPosition(), GdxVr.input.getControllerOrientation(), controllerScale);
+            }
             final VrInputProcessor vrInputProcessor = GdxVr.input.getVrInputProcessor();
             if (vrInputProcessor != null && vrInputProcessor.isCursorOver()) {
                 cursor.position.set(vrInputProcessor.getHitPoint3D());
