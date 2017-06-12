@@ -55,8 +55,6 @@ public abstract class VrGame extends VrApplicationAdapter {
         shapeRenderer = new ShapeRenderer();
         shapeRenderer.setAutoShapeType(true);
         loadAsset(CONTROLLER_FILENAME, Model.class);
-
-        controllerInstance = new ModelInstance(assets.get(CONTROLLER_FILENAME, Model.class));
     }
 
     protected ModelBatch createModelBatch() {
@@ -87,6 +85,8 @@ public abstract class VrGame extends VrApplicationAdapter {
 
     @CallSuper
     protected void doneLoading(AssetManager assets) {
+        if (controllerInstance == null)
+            controllerInstance = new ModelInstance(assets.get(CONTROLLER_FILENAME, Model.class));
         screen.doneLoading(assets);
     }
 
