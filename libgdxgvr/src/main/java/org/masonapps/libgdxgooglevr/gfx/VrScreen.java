@@ -62,17 +62,10 @@ public abstract class VrScreen implements Disposable {
         GdxVr.gl.glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
         getVrCamera().onDrawEye(eye);
         render(getVrCamera(), eye.getType());
-        renderCursor(getVrCamera());
-    }
-
-    public void onFinishFrame(Viewport viewport) {
     }
 
     public void render(Camera camera, int whichEye) {
 
-    }
-
-    protected void renderCursor(Camera camera) {
     }
 
     public Vector3 getForwardVector() {
