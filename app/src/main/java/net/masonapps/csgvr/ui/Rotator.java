@@ -14,11 +14,10 @@ import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
 
 public class Rotator implements DaydreamControllerInputListener {
     private final Vector3 tempV = new Vector3();
-    private final Quaternion tempQ = new Quaternion();
     private final Quaternion rotation = new Quaternion();
     private final Quaternion rotX = new Quaternion();
     private final Quaternion rotY = new Quaternion();
-    public float rotateRate = 0.05f;
+    public float rotateRate = 90f;
     private float lastX, lastY;
 
     @Override
