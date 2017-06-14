@@ -192,7 +192,7 @@ public class VrUiContainer implements VrInputProcessor, Disposable {
             if (inputProcessor.performRayTest(transformedRay)) {
                 focusedProcessor = inputProcessor;
                 hitPoint2DPixels.set(inputProcessor.getHitPoint2D());
-                hitPoint3D.set(inputProcessor.getHitPoint3D().mul(transform));
+                hitPoint3D.set(inputProcessor.getHitPoint3D()).mul(transform);
                 isCursorOver = true;
             }
         }

@@ -39,7 +39,7 @@ import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 /**
  * Created by Bob on 5/19/2017.
  */
-class CSGTest implements ApplicationListener {
+class PolyhedronsTest implements ApplicationListener {
 
     private final Array<ModelInstance> instances = new Array<>();
     private final PerspectiveCamera camera = new PerspectiveCamera();
@@ -52,7 +52,6 @@ class CSGTest implements ApplicationListener {
     @Nullable
     private SubPlane focusedPlane = null;
     private TransformManipulator transformManipulator;
-    private boolean doExtrude = true;
     private Grid grid;
 
     @Override
@@ -145,8 +144,9 @@ class CSGTest implements ApplicationListener {
             final Vector3D point = ConversionUtils.convertVector(ray.origin);
             final Vector3D point2 = ConversionUtils.convertVector(ray.direction).add(point);
             final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
-            if (subPlane != null)
+            if (subPlane != null) {
                 focusedPlane = subPlane;
+            }
 //            if (focusedPlane != null && doExtrude) {
 //                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedPlane, 0.2f).getPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
 //                doExtrude = false;

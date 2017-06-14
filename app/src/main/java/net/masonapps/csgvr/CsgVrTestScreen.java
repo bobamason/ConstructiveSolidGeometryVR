@@ -21,6 +21,7 @@ import com.google.vr.sdk.controller.Controller;
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.primitives.Cylinder;
+import net.masonapps.csgvr.primitives.Solid;
 import net.masonapps.csgvr.ui.Grid;
 import net.masonapps.csgvr.ui.Rotator;
 
@@ -48,9 +49,10 @@ import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
 public class CsgVrTestScreen extends VrWorldScreen {
 
     private final Rotator rotator;
-    private final Entity entity;
+    private final Solid solid;
     private final Matrix4 tempM = new Matrix4();
     private final Ray tempRay = new Ray();
+    private final Entity wireFrame;
     private ModelBatch modelBatch;
     private ShapeRenderer shapeRenderer;
     private DirectionalLight light;
@@ -82,6 +84,7 @@ public class CsgVrTestScreen extends VrWorldScreen {
 
     public CsgVrTestScreen(VrGame game) {
         super(game);
+        setBackgroundColor(Color.NAVY);
         rotator = new Rotator();
         environment = new Environment();
         modelBatch = new ModelBatch();
@@ -114,10 +117,14 @@ public class CsgVrTestScreen extends VrWorldScreen {
 
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
 
-        final Material material = new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
-        entity = getWorld().add(new Entity(ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, material)));
+        solid = new Solid();
+        manageDisposable(solid);
+        solid.setPolyhedronsSet(polyhedronsSet);
+        solid.material = new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
+        getWorld().add(new Entity(solid.getModelInstance(true)));
 //        transformManipulator = new TransformManipulator(entity.transform);
-        getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(entity.modelInstance.model, Color.BLACK)))).setLightingEnabled(false);
+        wireFrame = getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(solid.getModelInstance(false).model, Color.BLACK))));
+        wireFrame.setLightingEnabled(false);
     }
 
     @Override
@@ -138,7 +145,7 @@ public class CsgVrTestScreen extends VrWorldScreen {
         if (Gdx.input.isTouched()) {
             tempRay.set(GdxVr.input.getInputRay());
 //            transformManipulator.rayTest(ray);
-            tempRay.mul(tempM.set(entity.transform).inv());
+            tempRay.mul(tempM.set(solid.getModelInstance(false).transform).inv());
             final Vector3D point = ConversionUtils.convertVector(tempRay.origin);
             final Vector3D point2 = ConversionUtils.convertVector(tempRay.direction).add(point);
             final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
@@ -146,11 +153,13 @@ public class CsgVrTestScreen extends VrWorldScreen {
                 focusedPlane = subPlane;
             }
         }
-        entity.transform.idt().translate(0, -0.5f, -3.0f).rotate(rotator.getRotation());
+        solid.getModelInstance(false).transform.idt().translate(0, -0.5f, -3.0f).rotate(rotator.getRotation());
+        wireFrame.transform.set(solid.getModelInstance(false).transform);
     }
 
     @Override
     public void render(Camera camera, int whichEye) {
+        Gdx.gl.glLineWidth(1f);
         super.render(camera, whichEye);
         light.setDirection(camera.direction);
 
@@ -179,6 +188,7 @@ public class CsgVrTestScreen extends VrWorldScreen {
     private void renderSubPlane(SubPlane subPlane) {
         final Plane plane = (Plane) subPlane.getHyperplane();
         final Vector2D[][] loops = ((PolygonsSet) subPlane.getRemainingRegion()).getVertices();
+        Gdx.gl.glLineWidth(2f);
         shapeRenderer.begin();
         for (Vector2D[] loop : loops) {
             for (int i = 0; i < loop.length; i++) {
