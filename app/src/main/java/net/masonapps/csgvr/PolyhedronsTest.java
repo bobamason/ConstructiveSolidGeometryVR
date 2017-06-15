@@ -7,26 +7,26 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 
-import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
-import net.masonapps.csgvr.primitives.Cylinder;
 import net.masonapps.csgvr.ui.Grid;
 import net.masonapps.csgvr.ui.TransformManipulator;
 
-import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
@@ -34,7 +34,6 @@ import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 
 /**
  * Created by Bob on 5/19/2017.
@@ -70,21 +69,25 @@ class PolyhedronsTest implements ApplicationListener {
 
         grid = Grid.newInstance();
 
-        polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
-        for (int i = 1; i < 3; i++) {
-            final Box box = new Box(2, 0.25f, 2);
-            box.rotateY(30 * i);
-            polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, box.getPolyhedronsSet());
-        }
+        final ModelBuilder modelBuilder = new ModelBuilder();
+        final Model sphereModel = modelBuilder.createSphere(1f, 1f, 1f, 18, 9, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        polyhedronsSet = ConversionUtils.meshToPolyhedronSet(sphereModel.meshes.get(0));
 
-        final Cylinder cylinder = new Cylinder(0.5f, 0.5f);
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, cylinder.getPolyhedronsSet());
-
-        final Cylinder hole = new Cylinder(0.25f, 1f);
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(polyhedronsSet, hole.getPolyhedronsSet());
-        final Cylinder rounded = new Cylinder((float) (Math.sqrt(2) * 0.95), 0.5f);
-        rounded.divisions = 24;
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().intersection(polyhedronsSet, rounded.getPolyhedronsSet());
+//        polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
+//        for (int i = 1; i < 3; i++) {
+//            final Box box = new Box(2, 0.25f, 2);
+//            box.rotateY(30 * i);
+//            polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, box.getPolyhedronsSet());
+//        }
+//
+//        final Cylinder cylinder = new Cylinder(0.5f, 0.5f);
+//        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, cylinder.getPolyhedronsSet());
+//
+//        final Cylinder hole = new Cylinder(0.25f, 1f);
+//        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(polyhedronsSet, hole.getPolyhedronsSet());
+//        final Cylinder rounded = new Cylinder((float) (Math.sqrt(2) * 0.95), 0.5f);
+//        rounded.divisions = 24;
+//        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().intersection(polyhedronsSet, rounded.getPolyhedronsSet());
 
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
 
@@ -92,7 +95,7 @@ class PolyhedronsTest implements ApplicationListener {
         final ModelInstance modelInstance = ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, material);
         instances.add(modelInstance);
         transformManipulator = new TransformManipulator(modelInstance.transform);
-        instances.add(new ModelInstance(DebugUtils.createEdgeModel(modelInstance.model, Color.BLACK)));
+//        instances.add(new ModelInstance(DebugUtils.createEdgeModel(modelInstance.model, Color.BLACK)));
     }
 
     @Override

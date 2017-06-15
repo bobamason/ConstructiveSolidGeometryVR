@@ -31,11 +31,11 @@ public class CSGPlane {
 
     public void set(Vector3 a, Vector3 b, Vector3 c) {
         normal.set(b).sub(a).crs(c.x - a.x, c.y - a.y, c.z - a.z).nor();
-        d = normal.dot(a);
+        d = -normal.dot(a);
     }
 
     public int classifyVertex(Vertex vertex) {
-        float dist = normal.dot(vertex.position) - d;
+        float dist = vertex.position.dot(normal) + d;
         if (dist < -EPSILON)
             return BACK;
         else if (dist > EPSILON)

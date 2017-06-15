@@ -32,7 +32,7 @@ public class Vertex {
 
     public Vertex interpolate(Vertex other, float t) {
         position.lerp(other.position, t);
-        normal.lerp(other.normal, t);
+        normal.slerp(other.normal, t);
         uv.lerp(other.uv, t);
         return this;
     }

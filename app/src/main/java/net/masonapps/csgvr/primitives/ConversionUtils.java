@@ -25,7 +25,12 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.BSPTree;
 import org.apache.commons.math3.geometry.partitioning.BSPTreeVisitor;
 import org.apache.commons.math3.geometry.partitioning.BoundaryAttribute;
+import org.apache.commons.math3.geometry.partitioning.Hyperplane;
 import org.apache.commons.math3.geometry.partitioning.Region;
+import org.apache.commons.math3.geometry.partitioning.RegionFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Bob on 5/16/2017.
@@ -88,6 +93,34 @@ public class ConversionUtils {
         return new ModelInstance(modelBuilder.end());
     }
 
+    public static PolyhedronsSet meshToPolyhedronSet(Mesh mesh) {
+        final int numVertices = mesh.getNumVertices();
+        final int vertexSize = mesh.getVertexSize() / 4;
+        float[] vertices = new float[numVertices * vertexSize];
+        mesh.getVertices(vertices);
+        short[] indices = new short[mesh.getNumIndices()];
+        mesh.getIndices(indices);
+        final List<Hyperplane<Euclidean3D>> planes = new ArrayList<>(indices.length / 3);
+        for (int i = 0; i < indices.length; i += 3) {
+            int ia = indices[i] * vertexSize;
+            int ib = indices[i + 1] * vertexSize;
+            int ic = indices[i + 2] * vertexSize;
+            final Vector3D a = new Vector3D(vertices[ia], vertices[ia + 1], vertices[ia + 2]);
+            final Vector3D nor = new Vector3D(vertices[ia + 3], vertices[ia + 4], vertices[ia + 5]);
+            try {
+                final Plane plane = new Plane(a, nor, 10e-10);
+                planes.add(plane);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        final Hyperplane<Euclidean3D>[] planeArray = new Plane[planes.size()];
+        for (int i = 0; i < planeArray.length; i++) {
+            planeArray[i] = planes.get(i);
+        }
+        return (PolyhedronsSet) new RegionFactory<Euclidean3D>().buildConvex(planeArray);
+    }
+    
     private static class MeshCreationTreeVisitor implements BSPTreeVisitor<Euclidean3D> {
 
         public static final int VERTEX_SIZE = 6;

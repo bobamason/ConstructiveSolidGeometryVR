@@ -15,6 +15,8 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.ShortArray;
 
+import java.util.Arrays;
+
 /**
  * Created by Bob on 5/8/2017.
  */
@@ -35,11 +37,10 @@ public class CSG {
     public static Array<CSGPolygon> meshToPolygons(Mesh mesh, Matrix4 transform) {
         final Array<CSGPolygon> polygons = new Array<>();
         final int numVertices = mesh.getNumVertices();
-        final int vertexSize = 8;
-//        if(vertexSize != 8) throw new IllegalArgumentException("mesh must has position, normal, and uv");
+        final int vertexSize = mesh.getVertexSize() / 4;
         float[] vertices = new float[numVertices * vertexSize];
         mesh.getVertices(vertices);
-//        Log.i("meshToPolygons vertices", Arrays.toString(vertices));
+        Log.i("meshToPolygons vertices", Arrays.toString(vertices));
         short[] indices = new short[mesh.getNumIndices()];
         mesh.getIndices(indices);
 
@@ -141,6 +142,7 @@ public class CSG {
                 vertices.add(tempVertex.uv.y);
             }
             final ShortArray tempIndices = triangulator.computeTriangles(tempVerts);
+//            tempIndices.reverse();
             for (int j = 0; j < tempIndices.size; j++) {
                 final int index = startIndex + tempIndices.get(j);
                 indices.add(index);
