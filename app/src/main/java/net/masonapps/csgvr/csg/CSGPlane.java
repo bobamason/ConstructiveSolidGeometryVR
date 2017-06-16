@@ -35,13 +35,17 @@ public class CSGPlane {
     }
 
     public int classifyVertex(Vertex vertex) {
-        float dist = vertex.position.dot(normal) + d;
+        float dist = getOffset(vertex);
         if (dist < -EPSILON)
             return BACK;
         else if (dist > EPSILON)
             return FRONT;
         else
             return COPLANAR;
+    }
+
+    public float getOffset(Vertex vertex) {
+        return vertex.position.dot(normal) + d;
     }
 
     public void flip() {
@@ -76,7 +80,7 @@ public class CSGPlane {
                     if (cA != BACK) f.add(va);
                     if (cA != FRONT) b.add(cA != BACK ? va.copy() : va);
                     if ((cA | cB) == SPANNING) {
-                        final float t = (d - normal.dot(va.position)) / normal.dot(vb.position.cpy().sub(va.position));
+                        final float t = getOffset(va) / normal.dot(vb.position.cpy().sub(va.position));
                         final Vertex v = new Vertex(va.interpolate(vb, t));
                         f.add(v);
                         b.add(v);

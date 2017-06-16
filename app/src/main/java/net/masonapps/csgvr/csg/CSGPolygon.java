@@ -30,8 +30,6 @@ public class CSGPolygon {
     }
 
     public void flip() {
-        if (plane != null)
-            plane.flip();
         final Array<Vertex> tmpVert = new Array<>(vertices.size);
         for (int i = vertices.size - 1; i >= 0; i--) {
             final Vertex vertex = vertices.get(i);
@@ -39,6 +37,7 @@ public class CSGPolygon {
             tmpVert.add(vertex);
         }
         vertices = tmpVert;
+        updatePlane();
     }
 
     public int getVertexCount() {
