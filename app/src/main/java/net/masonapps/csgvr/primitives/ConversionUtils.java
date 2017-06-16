@@ -1,6 +1,7 @@
 package net.masonapps.csgvr.primitives;
 
 import android.util.Log;
+import android.util.SparseIntArray;
 
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
@@ -25,9 +26,7 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.BSPTree;
 import org.apache.commons.math3.geometry.partitioning.BSPTreeVisitor;
 import org.apache.commons.math3.geometry.partitioning.BoundaryAttribute;
-import org.apache.commons.math3.geometry.partitioning.Hyperplane;
 import org.apache.commons.math3.geometry.partitioning.Region;
-import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,25 +99,43 @@ public class ConversionUtils {
         mesh.getVertices(vertices);
         short[] indices = new short[mesh.getNumIndices()];
         mesh.getIndices(indices);
-        final List<Hyperplane<Euclidean3D>> planes = new ArrayList<>(indices.length / 3);
-        for (int i = 0; i < indices.length; i += 3) {
-            int ia = indices[i] * vertexSize;
-            int ib = indices[i + 1] * vertexSize;
-            int ic = indices[i + 2] * vertexSize;
-            final Vector3D a = new Vector3D(vertices[ia], vertices[ia + 1], vertices[ia + 2]);
-            final Vector3D nor = new Vector3D(vertices[ia + 3], vertices[ia + 4], vertices[ia + 5]);
-            try {
-                final Plane plane = new Plane(a, nor, 10e-10);
-                planes.add(plane);
-            } catch (Exception e) {
-                e.printStackTrace();
+        final List<Vector3D> vector3DList = new ArrayList<>();
+        final List<int[]> facets = new ArrayList<>();
+        final ArrayList<Integer> outIndices = new ArrayList<>();
+        removeDoubles(vertices, indices, vertexSize, vector3DList, outIndices);
+        for (int i = 0; i < outIndices.size(); i += 3) {
+            int ia = outIndices.get(i);
+            int ib = outIndices.get(i + 1);
+            int ic = outIndices.get(i + 2);
+            facets.add(new int[]{ia, ib, ic});
+        }
+        return new PolyhedronsSet(vector3DList, facets, 1e-10);
+    }
+
+    private static void removeDoubles(float[] vertices, short[] indices, int vertexSize, List<Vector3D> outVecs, List<Integer> outIndices) {
+        final double tolerance = 1e-5;
+        SparseIntArray indexMap = new SparseIntArray();
+        for (int i = 0; i < vertices.length / vertexSize; i++) {
+            boolean isDouble = false;
+            final Vector3D v = new Vector3D(vertices[i * vertexSize], vertices[i * vertexSize + 1], vertices[i * vertexSize + 2]);
+            for (int j = 0; j < outVecs.size(); j++) {
+                if (outVecs.get(j).distance(v) <= tolerance) {
+                    Log.d("remove doubles", "double found i: " + i + " j: " + j + " vec: " + v.toString());
+                    indexMap.put(i, j);
+                    isDouble = true;
+                    break;
+                }
+            }
+            if (!isDouble) {
+                indexMap.put(i, outVecs.size());
+                outVecs.add(v);
             }
         }
-        final Hyperplane<Euclidean3D>[] planeArray = new Plane[planes.size()];
-        for (int i = 0; i < planeArray.length; i++) {
-            planeArray[i] = planes.get(i);
+
+        for (int i = 0; i < indices.length; i++) {
+            int index = indices[i];
+            outIndices.add(indexMap.get(index, index));
         }
-        return (PolyhedronsSet) new RegionFactory<Euclidean3D>().buildConvex(planeArray);
     }
     
     private static class MeshCreationTreeVisitor implements BSPTreeVisitor<Euclidean3D> {

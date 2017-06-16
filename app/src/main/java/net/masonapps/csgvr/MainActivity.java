@@ -9,7 +9,7 @@ public class MainActivity extends AndroidApplication {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        initialize(new SimpleCSGTest());
+        initialize(new PolyhedronsTest());
     }
 
 }

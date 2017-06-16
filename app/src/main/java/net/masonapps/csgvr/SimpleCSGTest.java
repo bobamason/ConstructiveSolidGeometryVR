@@ -70,13 +70,13 @@ public class SimpleCSGTest implements ApplicationListener {
         final ModelInstance s1 = new ModelInstance(createModel(modelBuilder, 1f));
         final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.75f, 0.75f, 0.75f);
         csg1 = CSG.fromMesh(s1.model.meshes.get(0), s1.transform);
-        csg2 = CSG.fromMesh(s2.model.meshes.get(0), s2.transform);
+        csg2 = CSG.fromMesh(s2.model.meshes.get(0), s2.transform).union(csg1);
 //        instances.add(s1);
 //        instances.add(s2);
 
 
         final Material material = new Material(ColorAttribute.createDiffuse(Color.GOLD), ColorAttribute.createSpecular(Color.GOLD), FloatAttribute.createShininess(50f));
-        final ModelInstance modelInstance = CSG.toModelInstance(csg1, material);
+        final ModelInstance modelInstance = CSG.toModelInstance(csg2, material);
 
         instances.add(modelInstance);
 
@@ -109,26 +109,34 @@ public class SimpleCSGTest implements ApplicationListener {
         modelBatch.end();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
-        renderCSGTree(csg1, Color.WHITE);
+        renderCSGTree(csg2, Color.WHITE, Color.LIME);
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
         }
     }
 
-    private void renderCSGTree(CSG csg, Color color) {
+    private void renderCSGTree(CSG csg, Color color, Color normalColor) {
         final float s = 0.1f;
         shapeRenderer.begin();
-        shapeRenderer.setColor(color);
         final Array<CSGPolygon> polygons = new Array<>();
         polygons.clear();
         csg.tree.getAllPolygons(polygons);
         for (CSGPolygon polygon : polygons) {
-            for (Vertex vertex : polygon.vertices) {
-                final Vector3 v = vertex.position;
+            for (int i = 0; i < polygon.vertices.size; i++) {
+                final Vertex v1 = polygon.vertices.get(i);
+                final Vertex v2 = polygon.vertices.get((i + 1) % polygon.vertices.size);
+                final Vector3 p1 = v1.position;
+                final Vector3 p2 = v2.position;
                 final Vector3 n;
-                if (polygon.plane != null) {
+                if (!polygon.plane.normal.isZero(1e-3f)) {
+                    shapeRenderer.setColor(color);
+                    shapeRenderer.line(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
                     n = polygon.plane.normal;
-                    shapeRenderer.line(v.x, v.y, v.z, v.x + n.x * s, v.y + n.y * s, v.z + n.z * s);
+                    shapeRenderer.setColor(normalColor);
+                    shapeRenderer.line(p1.x, p1.y, p1.z, p1.x + n.x * s, p1.y + n.y * s, p1.z + n.z * s);
+                } else {
+                    shapeRenderer.setColor(Color.RED);
+                    shapeRenderer.line(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
                 }
             }
         }

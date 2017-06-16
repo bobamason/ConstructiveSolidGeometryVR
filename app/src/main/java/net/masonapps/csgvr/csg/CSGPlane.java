@@ -17,9 +17,6 @@ public class CSGPlane {
     public final Vector3 normal = new Vector3();
     public float d = 0;
 
-    public CSGPlane() {
-    }
-
     public CSGPlane(Vector3 normal, float d) {
         this.normal.set(normal).nor();
         this.d = d;
@@ -27,6 +24,10 @@ public class CSGPlane {
 
     public CSGPlane(Vector3 a, Vector3 b, Vector3 c) {
         set(a, b, c);
+    }
+
+    public static Vector3 calculateNormal(Vector3 a, Vector3 b, Vector3 c) {
+        return new Vector3().set(b).sub(a).crs(c.x - a.x, c.y - a.y, c.z - a.z).nor();
     }
 
     public void set(Vector3 a, Vector3 b, Vector3 c) {
@@ -80,16 +81,34 @@ public class CSGPlane {
                     if (cA != BACK) f.add(va);
                     if (cA != FRONT) b.add(cA != BACK ? va.copy() : va);
                     if ((cA | cB) == SPANNING) {
-                        final float t = getOffset(va) / normal.dot(vb.position.cpy().sub(va.position));
+                        final float t = -getOffset(va) / normal.dot(vb.position.cpy().sub(va.position));
                         final Vertex v = new Vertex(va.interpolate(vb, t));
                         f.add(v);
-                        b.add(v);
+                        b.add(v.copy());
                     }
                 }
+//                removeDoubles(f);
+//                removeDoubles(b);
                 if (f.size >= 3) front.add(new CSGPolygon(f));
                 if (b.size >= 3) back.add(new CSGPolygon(b));
                 break;
         }
+    }
+
+    private void removeDoubles(Array<Vertex> vertices) {
+        final Array<Vertex> temp = new Array<>();
+        for (int i = 0; i < vertices.size; i++) {
+            boolean isDouble = false;
+            for (int j = 0; j < temp.size; j++) {
+                isDouble = vertices.get(i).position.epsilonEquals(temp.get(j).position, 1e-4f);
+                break;
+            }
+            if (!isDouble) {
+                temp.add(vertices.get(i).copy());
+            }
+        }
+        vertices.clear();
+        vertices.addAll(temp);
     }
 
     public int classifyPolygon(CSGPolygon polygon) {

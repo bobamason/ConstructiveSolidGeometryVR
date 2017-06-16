@@ -1,6 +1,6 @@
 package net.masonapps.csgvr.csg;
 
-import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.badlogic.gdx.utils.Array;
 
@@ -9,35 +9,45 @@ import com.badlogic.gdx.utils.Array;
  */
 
 public class CSGPolygon {
-    @Nullable
-    public CSGPlane plane = null;
+    public CSGPlane plane;
     public Array<Vertex> vertices = new Array<>(3);
 
     public CSGPolygon() {
     }
 
     public CSGPolygon(Array<Vertex> vertices) {
-        for (Vertex vertex : vertices) {
-            this.vertices.add(vertex.copy());
-        }
-        updatePlane();
+        this.vertices = vertices;
+//        this.vertices.addAll(vertices);
+        initPlane();
     }
 
-    public void updatePlane() {
-        if (vertices.size < 3) return;
-        plane = new CSGPlane();
-        plane.set(vertices.get(0).position, vertices.get(1).position, vertices.get(2).position);
+    private void initPlane() {
+        if (vertices.size < 3)
+            throw new IllegalStateException("polygon must have 3 or more vertices");
+//        Vector3 normal = new Vector3();
+//        float n = 0f;
+//        for (int i = 2; i < vertices.size; i++) {
+//            normal.add(CSGPlane.calculateNormal(vertices.get(i - 2).position, vertices.get(i - 1).position, vertices.get(i).position));
+//            n += 1f;
+//        }
+//        normal.scl(1f / n).nor();
+//        plane = new CSGPlane(normal, -normal.dot(vertices.get(0).position));
+        plane = new CSGPlane(vertices.get(0).position, vertices.get(1).position, vertices.get(2).position);
+        if (plane.normal.isZero(1e-5f)) {
+            Log.e(CSGPolygon.class.getSimpleName(), "a: " + vertices.get(0).position.toString() +
+                    "\n b: " + vertices.get(1).position.toString() +
+                    "\n c: " + vertices.get(2).position.toString() +
+                    "\n num vertices: " + vertices.size);
+        }
     }
 
     public void flip() {
-        final Array<Vertex> tmpVert = new Array<>(vertices.size);
-        for (int i = vertices.size - 1; i >= 0; i--) {
-            final Vertex vertex = vertices.get(i);
-            vertex.flip();
-            tmpVert.add(vertex);
+        vertices.reverse();
+        for (Vertex v : vertices) {
+            v.flip();
         }
-        vertices = tmpVert;
-        updatePlane();
+        if (plane != null)
+            plane.flip();
     }
 
     public int getVertexCount() {

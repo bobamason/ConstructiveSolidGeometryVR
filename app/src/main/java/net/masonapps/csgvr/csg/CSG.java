@@ -44,11 +44,11 @@ public class CSG {
         short[] indices = new short[mesh.getNumIndices()];
         mesh.getIndices(indices);
 
-        final ShortArray newIndices = new ShortArray();
-        final FloatArray newVertices = new FloatArray();
-        removeDoubles(vertices, indices, vertexSize, newVertices, newIndices);
-        vertices = newVertices.toArray();
-        indices = newIndices.toArray();
+//        final ShortArray newIndices = new ShortArray();
+//        final FloatArray newVertices = new FloatArray();
+//        removeDoubles(vertices, indices, vertexSize, newVertices, newIndices);
+//        vertices = newVertices.toArray();
+//        indices = newIndices.toArray();
 
         final Array<Vertex> tmpVerts = new Array<>(3);
         final Vertex a = new Vertex();
@@ -102,7 +102,7 @@ public class CSG {
                 v2.set(vertices[i2], vertices[i2 + 1], vertices[i2 + 2]);
                 if (v1.epsilonEquals(v2, 1e-5f)) {
                     isDouble = true;
-                    newIndex = ij;
+                    newIndex = Math.min(ii, ij);
                     Log.i("** double found ", newIndex + " matches " + ii);
                     break;
                 }
@@ -142,17 +142,16 @@ public class CSG {
                 vertices.add(tempVertex.uv.y);
             }
             final ShortArray tempIndices = triangulator.computeTriangles(tempVerts);
-//            tempIndices.reverse();
+            tempIndices.reverse();
             for (int j = 0; j < tempIndices.size; j++) {
                 final int index = startIndex + tempIndices.get(j);
                 indices.add(index);
             }
-            startIndex = vertices.size / 6;
+            startIndex = vertices.size / 8;
         }
         final Mesh mesh = new Mesh(false, vertices.size, indices.size, VertexAttribute.Position(), VertexAttribute.Normal(), VertexAttribute.TexCoords(0));
+        mesh.setVertices(vertices.toArray());
         mesh.setIndices(indices.toArray());
-        final float[] vertArray = vertices.toArray();
-        mesh.setVertices(vertArray);
 //        Log.i("polygonsToMesh vertices", Arrays.toString(vertArray));
         return mesh;
     }

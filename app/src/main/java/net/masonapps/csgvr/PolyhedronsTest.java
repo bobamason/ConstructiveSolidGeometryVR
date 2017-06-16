@@ -70,8 +70,8 @@ class PolyhedronsTest implements ApplicationListener {
         grid = Grid.newInstance();
 
         final ModelBuilder modelBuilder = new ModelBuilder();
-        final Model sphereModel = modelBuilder.createSphere(1f, 1f, 1f, 18, 9, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-        polyhedronsSet = ConversionUtils.meshToPolyhedronSet(sphereModel.meshes.get(0));
+        final Model model = modelBuilder.createBox(1f, 1f, 1f, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        polyhedronsSet = ConversionUtils.meshToPolyhedronSet(model.meshes.get(0));
 
 //        polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
 //        for (int i = 1; i < 3; i++) {
