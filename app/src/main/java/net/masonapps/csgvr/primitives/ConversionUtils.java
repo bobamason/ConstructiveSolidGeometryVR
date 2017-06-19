@@ -137,7 +137,11 @@ public class ConversionUtils {
             outIndices.add(indexMap.get(index, index));
         }
     }
-    
+
+    public static com.badlogic.gdx.math.Plane convertPlane(Plane plane) {
+        return new com.badlogic.gdx.math.Plane(convertVector(plane.getNormal()), convertVector(plane.getOrigin()));
+    }
+
     private static class MeshCreationTreeVisitor implements BSPTreeVisitor<Euclidean3D> {
 
         public static final int VERTEX_SIZE = 6;

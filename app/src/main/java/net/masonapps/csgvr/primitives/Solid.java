@@ -4,11 +4,19 @@ import android.support.annotation.Nullable;
 
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.BoundingBox;
+import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Disposable;
 
+import org.apache.commons.math3.geometry.euclidean.threed.Line;
+import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
+import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.masonapps.libgdxgooglevr.GdxVr;
 
 /**
  * Created by Bob on 6/13/2017.
@@ -29,6 +37,8 @@ public class Solid implements Disposable {
     @Nullable
     protected ModelInstance modelInstance = null;
     protected boolean updated = false;
+    private BoundingBox boundingBox = new BoundingBox();
+    private Ray tempRay = new Ray();
 
     @Nullable
     public PolyhedronsSet getPolyhedronsSet() {
@@ -50,10 +60,35 @@ public class Solid implements Disposable {
                 modelInstance = null;
             }
         }
-        if (modelInstance != null && updated) {
-            modelInstance.transform.set(position, rotation, scale);
+        if (!updated) {
+            updateTransformAndBounds();
         }
         return modelInstance;
+    }
+
+    private void updateTransformAndBounds() {
+        if (modelInstance == null) return;
+        modelInstance.transform.set(position, rotation, scale);
+        modelInstance.calculateBoundingBox(boundingBox);
+    }
+
+    public boolean castRay(Ray ray, Vector3 hitPoint) {
+        if (!updated) {
+            updateTransformAndBounds();
+        }
+        if (modelInstance != null && polyhedronsSet != null) {
+            if (Intersector.intersectRayBoundsFast(ray, boundingBox)) {
+                tempRay.set(GdxVr.input.getInputRay());
+                final Vector3D point = ConversionUtils.convertVector(tempRay.origin);
+                final Vector3D point2 = ConversionUtils.convertVector(tempRay.direction).add(point);
+                final SubPlane plane3D = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
+                if (plane3D != null) {
+                    final com.badlogic.gdx.math.Plane plane = ConversionUtils.convertPlane((Plane) plane3D.getHyperplane());
+                    return Intersector.intersectRayPlane(ray, plane, hitPoint);
+                }
+            }
+        }
+        return false;
     }
 
     public void setScale(float x, float y, float z) {

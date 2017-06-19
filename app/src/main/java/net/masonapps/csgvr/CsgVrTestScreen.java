@@ -17,14 +17,12 @@ import com.badlogic.gdx.math.collision.Ray;
 import com.google.vr.sdk.controller.Controller;
 
 import net.masonapps.csgvr.primitives.Box;
-import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.primitives.Cylinder;
 import net.masonapps.csgvr.primitives.Solid;
 import net.masonapps.csgvr.ui.DaydreamCameraController;
 import net.masonapps.csgvr.ui.Grid;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
-import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
@@ -33,12 +31,13 @@ import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 import org.masonapps.libgdxgooglevr.GdxVr;
-import org.masonapps.libgdxgooglevr.gfx.Entity;
 import org.masonapps.libgdxgooglevr.gfx.VrGame;
 import org.masonapps.libgdxgooglevr.gfx.VrWorldScreen;
 import org.masonapps.libgdxgooglevr.input.DaydreamButtonEvent;
 import org.masonapps.libgdxgooglevr.input.DaydreamControllerInputListener;
 import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
+
+import java.util.ArrayList;
 
 /**
  * Created by Bob on 6/12/2017.
@@ -47,7 +46,7 @@ import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
 public class CsgVrTestScreen extends VrWorldScreen {
 
     private final DaydreamCameraController cameraController;
-    private final Solid solid;
+    private final ArrayList<Solid> solids = new ArrayList<>();
     private final Matrix4 tempM = new Matrix4();
     private final Ray tempRay = new Ray();
     //    private final Entity wireFrame;
@@ -61,6 +60,8 @@ public class CsgVrTestScreen extends VrWorldScreen {
     private Grid grid;
     @Nullable
     private SubPlane selectedPlane = null;
+    @Nullable
+    private Solid selectedSolid = null;
     private DaydreamControllerInputListener listener = new DaydreamControllerInputListener() {
         @Override
         public void onConnectionStateChange(int connectionState) {
@@ -69,8 +70,12 @@ public class CsgVrTestScreen extends VrWorldScreen {
 
         @Override
         public void onButtonEvent(Controller controller, DaydreamButtonEvent event) {
-            if (event.button == DaydreamButtonEvent.BUTTON_TOUCHPAD && event.action == DaydreamButtonEvent.ACTION_DOWN) {
-                selectedPlane = focusedPlane;
+            if (event.button == DaydreamButtonEvent.BUTTON_TOUCHPAD) {
+                if (event.action == DaydreamButtonEvent.ACTION_DOWN && selectedSolid != null) {
+                    selectedSolid = getClosestSolid(GdxVr.input.getInputRay());
+                } else if (event.action == DaydreamButtonEvent.ACTION_UP) {
+                    selectedSolid = null;
+                }
             }
         }
 
@@ -117,35 +122,53 @@ public class CsgVrTestScreen extends VrWorldScreen {
 
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
 
-        solid = new Solid();
+        final Solid solid = new Solid();
         manageDisposable(solid);
         solid.setPolyhedronsSet(polyhedronsSet);
         solid.material = new Material(ColorAttribute.createDiffuse(Color.GOLD), ColorAttribute.createAmbient(Color.GOLD));
-        getWorld().add(new Entity(solid.getModelInstance(true)));
+        solids.add(solid);
 //        transformManipulator = new TransformManipulator(entity.transform);
 //        wireFrame = getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(solid.getModelInstance(false).model, Color.BLACK))));
 //        wireFrame.setLightingEnabled(false);
     }
 
+    @Nullable
+    private Solid getClosestSolid(Ray ray) {
+        float closestDst2 = Float.POSITIVE_INFINITY;
+        final Vector3 hitPoint = new Vector3();
+        Solid selected = null;
+        for (Solid solid : solids) {
+            if (solid.castRay(ray, hitPoint)) {
+                final float dst2 = ray.origin.dst2(hitPoint);
+                if (dst2 < closestDst2) {
+                    closestDst2 = dst2;
+                    selected = solid;
+                }
+            }
+        }
+        return selected;
+    }
+
     @Override
     public void show() {
-        GdxVr.input.getDaydreamControllerHandler().addListener(cameraController);
+//        GdxVr.input.getDaydreamControllerHandler().addListener(cameraController);
         GdxVr.input.getDaydreamControllerHandler().addListener(listener);
     }
 
     @Override
     public void hide() {
-        GdxVr.input.getDaydreamControllerHandler().removeListener(cameraController);
+//        GdxVr.input.getDaydreamControllerHandler().removeListener(cameraController);
         GdxVr.input.getDaydreamControllerHandler().removeListener(listener);
     }
 
     @Override
     public void update() {
         super.update();
-            tempRay.set(GdxVr.input.getInputRay());
-            final Vector3D point = ConversionUtils.convertVector(tempRay.origin);
-            final Vector3D point2 = ConversionUtils.convertVector(tempRay.direction).add(point);
-        focusedPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
+        if (selectedSolid != null) {
+            selectedSolid.setPosition(GdxVr.input.getInputRay().origin);
+            selectedSolid.translate(GdxVr.input.getInputRay().direction);
+            selectedSolid.translate(GdxVr.input.getInputRay().direction);
+        }
 //        wireFrame.transform.set(solid.getModelInstance(false).transform);
     }
 
@@ -155,9 +178,12 @@ public class CsgVrTestScreen extends VrWorldScreen {
         super.render(camera, whichEye);
         light.setDirection(camera.direction);
 
-//        modelBatch.begin(camera);
-//        transformManipulator.render(modelBatch);
-//        modelBatch.end();
+        modelBatch.begin(camera);
+        for (Solid solid : solids) {
+            if (solid.getModelInstance(false) != null)
+                modelBatch.render(solid.getModelInstance(false), environment);
+        }
+        modelBatch.end();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
 

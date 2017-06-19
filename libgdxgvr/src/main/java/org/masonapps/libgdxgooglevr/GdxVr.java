@@ -1,5 +1,7 @@
 package org.masonapps.libgdxgooglevr;
 
+import android.support.annotation.Nullable;
+
 import com.badlogic.gdx.Audio;
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Net;
@@ -14,9 +16,10 @@ import org.masonapps.libgdxgooglevr.vr.VrGraphics;
  */
 
 public class GdxVr {
-    public static VrActivity app;
+    public static VrActivity.VrApplication app;
     public static VrGraphics graphics;
     public static VrAndroidInput input;
+    @Nullable
     public static Audio audio;
     public static Files files;
     public static Net net;
