@@ -1,6 +1,6 @@
 package net.masonapps.csgvr.ui;
 
-import com.badlogic.gdx.math.Quaternion;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.math.Vector3;
 import com.google.vr.sdk.controller.Controller;
 
@@ -12,13 +12,16 @@ import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
  * Created by Bob on 6/12/2017.
  */
 
-public class Rotator implements DaydreamControllerInputListener {
+public class DaydreamCameraController implements DaydreamControllerInputListener {
     private final Vector3 tempV = new Vector3();
-    private final Quaternion rotation = new Quaternion();
-    private final Quaternion rotX = new Quaternion();
-    private final Quaternion rotY = new Quaternion();
+    private final Camera camera;
     public float rotateRate = 90f;
+    public Vector3 target = new Vector3();
     private float lastX, lastY;
+
+    public DaydreamCameraController(Camera camera) {
+        this.camera = camera;
+    }
 
     @Override
     public void onConnectionStateChange(int connectionState) {
@@ -42,17 +45,12 @@ public class Rotator implements DaydreamControllerInputListener {
                 final float deltaY = (event.y - lastY);
                 lastX = event.x;
                 lastY = event.y;
-                tempV.set(1, 0, 0).mul(rotation).y = 0f;
-                rotY.set(tempV.nor(), deltaY * rotateRate);
-                rotX.set(Vector3.Y, deltaX * -rotateRate);
-                rotation.mul(rotY).mul(rotX);
+                tempV.set(camera.direction).crs(camera.up).y = 0f;
+                camera.rotateAround(target, tempV.nor(), deltaY * rotateRate);
+                camera.rotateAround(target, Vector3.Y, deltaX * -rotateRate);
                 break;
             default:
                 break;
         }
-    }
-
-    public Quaternion getRotation() {
-        return rotation;
     }
 }

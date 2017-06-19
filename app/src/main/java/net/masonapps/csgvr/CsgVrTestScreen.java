@@ -8,9 +8,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix4;
@@ -22,8 +20,8 @@ import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.primitives.Cylinder;
 import net.masonapps.csgvr.primitives.Solid;
+import net.masonapps.csgvr.ui.DaydreamCameraController;
 import net.masonapps.csgvr.ui.Grid;
-import net.masonapps.csgvr.ui.Rotator;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
@@ -48,11 +46,11 @@ import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
 
 public class CsgVrTestScreen extends VrWorldScreen {
 
-    private final Rotator rotator;
+    private final DaydreamCameraController cameraController;
     private final Solid solid;
     private final Matrix4 tempM = new Matrix4();
     private final Ray tempRay = new Ray();
-    private final Entity wireFrame;
+    //    private final Entity wireFrame;
     private ModelBatch modelBatch;
     private ShapeRenderer shapeRenderer;
     private DirectionalLight light;
@@ -84,8 +82,8 @@ public class CsgVrTestScreen extends VrWorldScreen {
 
     public CsgVrTestScreen(VrGame game) {
         super(game);
-        setBackgroundColor(Color.NAVY);
-        rotator = new Rotator();
+        setBackgroundColor(Color.DARK_GRAY);
+        cameraController = new DaydreamCameraController(getVrCamera());
         environment = new Environment();
         modelBatch = new ModelBatch();
         shapeRenderer = new ShapeRenderer();
@@ -95,6 +93,8 @@ public class CsgVrTestScreen extends VrWorldScreen {
         light.setColor(Color.WHITE);
         light.setDirection(new Vector3(1, -1, -1).nor());
         environment.add(light);
+        getVrCamera().near = 0.1f;
+        getVrCamera().position.set(0, 1f, 4f);
 
         grid = Grid.newInstance();
         getWorld().add(grid);
@@ -120,41 +120,33 @@ public class CsgVrTestScreen extends VrWorldScreen {
         solid = new Solid();
         manageDisposable(solid);
         solid.setPolyhedronsSet(polyhedronsSet);
-        solid.material = new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
+        solid.material = new Material(ColorAttribute.createDiffuse(Color.GOLD), ColorAttribute.createAmbient(Color.GOLD));
         getWorld().add(new Entity(solid.getModelInstance(true)));
 //        transformManipulator = new TransformManipulator(entity.transform);
-        wireFrame = getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(solid.getModelInstance(false).model, Color.BLACK))));
-        wireFrame.setLightingEnabled(false);
+//        wireFrame = getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(solid.getModelInstance(false).model, Color.BLACK))));
+//        wireFrame.setLightingEnabled(false);
     }
 
     @Override
     public void show() {
-        GdxVr.input.getDaydreamControllerHandler().addListener(rotator);
+        GdxVr.input.getDaydreamControllerHandler().addListener(cameraController);
         GdxVr.input.getDaydreamControllerHandler().addListener(listener);
     }
 
     @Override
     public void hide() {
-        GdxVr.input.getDaydreamControllerHandler().removeListener(rotator);
+        GdxVr.input.getDaydreamControllerHandler().removeListener(cameraController);
         GdxVr.input.getDaydreamControllerHandler().removeListener(listener);
     }
 
     @Override
     public void update() {
         super.update();
-        if (Gdx.input.isTouched()) {
             tempRay.set(GdxVr.input.getInputRay());
-//            transformManipulator.rayTest(ray);
-            tempRay.mul(tempM.set(solid.getModelInstance(false).transform).inv());
             final Vector3D point = ConversionUtils.convertVector(tempRay.origin);
             final Vector3D point2 = ConversionUtils.convertVector(tempRay.direction).add(point);
-            final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
-            if (subPlane != null) {
-                focusedPlane = subPlane;
-            }
-        }
-        solid.getModelInstance(false).transform.idt().translate(0, -0.5f, -3.0f).rotate(rotator.getRotation());
-        wireFrame.transform.set(solid.getModelInstance(false).transform);
+        focusedPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
+//        wireFrame.transform.set(solid.getModelInstance(false).transform);
     }
 
     @Override

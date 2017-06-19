@@ -660,7 +660,7 @@ public class VrAndroidInput extends AndroidInput implements DaydreamControllerIn
             armModel.updateHeadDirection(GdxVr.graphics.getForward());
             armModel.onControllerUpdate(controller);
             controllerOrientation.set(controller.orientation.x, controller.orientation.y, controller.orientation.z, controller.orientation.w);
-            controllerPosition.set(armModel.pointerPosition);
+            controllerPosition.set(armModel.pointerPosition).add(GdxVr.app.getVrApplicationAdapter().getVrCamera().position);
         } else {
             isControllerConnected = false;
         }
