@@ -9,7 +9,7 @@ public class MainActivity extends VrActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        initialize(new CsgVrGame());
+        initialize(new SolidModelingVrGame());
     }
 
 }

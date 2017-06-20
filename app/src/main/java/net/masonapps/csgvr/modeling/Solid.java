@@ -1,19 +1,25 @@
-package net.masonapps.csgvr.primitives;
+package net.masonapps.csgvr.modeling;
 
 import android.support.annotation.Nullable;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Disposable;
 
+import net.masonapps.csgvr.primitives.ConversionUtils;
+
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
+import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.masonapps.libgdxgooglevr.GdxVr;
@@ -28,57 +34,73 @@ public class Solid implements Disposable {
     private static final Vector3 tmp2 = new Vector3();
     protected final Vector3 position = new Vector3();
     protected final Quaternion rotation = new Quaternion();
-    protected final Vector3 scale = new Vector3(1, 1, 1);
     private final Quaternion rotator = new Quaternion();
+    private final Matrix4 inverse = new Matrix4();
     public double tolerance = 1e-10;
     public Material material = new Material();
     @Nullable
     protected PolyhedronsSet polyhedronsSet = null;
     @Nullable
     protected ModelInstance modelInstance = null;
-    protected boolean updated = false;
+    protected boolean isPolyhedronsSetUpdated = false;
+    protected boolean isModelInstanceUpdated = false;
     private BoundingBox boundingBox = new BoundingBox();
     private Ray tempRay = new Ray();
+    private Vector3 lastPosition = new Vector3();
+    private Quaternion lastRotation = new Quaternion();
+
+    public Solid(@Nullable PolyhedronsSet polyhedronsSet, @Nullable ModelInstance modelInstance) {
+        this.polyhedronsSet = polyhedronsSet;
+        this.modelInstance = modelInstance;
+        if (this.modelInstance != null) {
+            this.material = this.modelInstance.materials.first();
+            this.modelInstance.transform.getTranslation(position);
+            this.modelInstance.transform.getRotation(rotation);
+        } else {
+            this.material = new Material(ColorAttribute.createDiffuse(Color.SKY));
+        }
+    }
+
+    protected Solid() {
+        this(null, null);
+    }
 
     @Nullable
     public PolyhedronsSet getPolyhedronsSet() {
+        if (polyhedronsSet != null && isPolyhedronsSetUpdated) {
+            polyhedronsSet.translate(new Vector3D(position.x - lastPosition.x, position.y - lastPosition.y, position.z - lastPosition.z));
+            final Quaternion quat = new Quaternion(lastRotation).conjugate().mul(rotation).nor();
+            polyhedronsSet.rotate(new Vector3D(0, 0, 0), new Rotation(quat.w, quat.x, quat.y, quat.z, false));
+            lastPosition.set(position);
+            lastRotation.set(rotation);
+        }
         return polyhedronsSet;
     }
 
-    public void setPolyhedronsSet(@Nullable PolyhedronsSet polyhedronsSet) {
-        this.polyhedronsSet = polyhedronsSet;
-    }
-
     @Nullable
-    public ModelInstance getModelInstance(boolean rebuild) {
-        if (rebuild) {
-            if (polyhedronsSet != null) {
-                if (modelInstance != null)
-                    modelInstance.model.dispose();
-                modelInstance = ConversionUtils.polyhedronsSetToModelInstance(getPolyhedronsSet(), material);
-            } else {
-                modelInstance = null;
-            }
-        }
-        if (!updated) {
+    public ModelInstance getModelInstance() {
+        if (!isModelInstanceUpdated) {
             updateTransformAndBounds();
         }
         return modelInstance;
     }
 
     private void updateTransformAndBounds() {
-        if (modelInstance == null) return;
-        modelInstance.transform.set(position, rotation, scale);
-        modelInstance.calculateBoundingBox(boundingBox);
+        if (modelInstance != null) {
+            modelInstance.transform.set(position, rotation);
+            inverse.set(modelInstance.transform).inv();
+            modelInstance.calculateBoundingBox(boundingBox);
+        }
     }
 
     public boolean castRay(Ray ray, Vector3 hitPoint) {
-        if (!updated) {
+        if (!isModelInstanceUpdated) {
             updateTransformAndBounds();
         }
-        if (modelInstance != null && polyhedronsSet != null) {
+        if (polyhedronsSet != null) {
             if (Intersector.intersectRayBoundsFast(ray, boundingBox)) {
                 tempRay.set(GdxVr.input.getInputRay());
+                tempRay.mul(inverse);
                 final Vector3D point = ConversionUtils.convertVector(tempRay.origin);
                 final Vector3D point2 = ConversionUtils.convertVector(tempRay.direction).add(point);
                 final SubPlane plane3D = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
@@ -89,63 +111,6 @@ public class Solid implements Disposable {
             }
         }
         return false;
-    }
-
-    public void setScale(float x, float y, float z) {
-        scale.set(x, y, z);
-        invalidate();
-    }
-
-    public void setScale(Vector3 scale) {
-        this.scale.set(scale);
-        invalidate();
-    }
-
-    public void scaleX(float x) {
-        scale.x *= x;
-        invalidate();
-    }
-
-    public void scaleY(float y) {
-        scale.y *= y;
-        invalidate();
-    }
-
-    public void scaleZ(float z) {
-        scale.z *= z;
-        invalidate();
-    }
-
-    public void scale(float x, float y, float z) {
-        scale.scl(x, y, z);
-        invalidate();
-    }
-
-    public float getScaleX() {
-        return this.scale.x;
-    }
-
-    public void setScaleX(float x) {
-        scale.x = x;
-        invalidate();
-    }
-
-    public float getScaleY() {
-        return this.scale.y;
-    }
-
-    public void setScaleY(float y) {
-        scale.y = y;
-        invalidate();
-    }
-
-    public float getScaleZ() {
-        return this.scale.z;
-    }
-
-    public void setScaleZ(float z) {
-        scale.z = z;
-        invalidate();
     }
 
     public void setRotationX(float angle) {
@@ -273,7 +238,8 @@ public class Solid implements Disposable {
     }
 
     private void invalidate() {
-        updated = false;
+        isModelInstanceUpdated = false;
+        isPolyhedronsSetUpdated = false;
     }
 
     @Override

@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
@@ -16,9 +17,11 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.google.vr.sdk.controller.Controller;
 
+import net.masonapps.csgvr.modeling.Solid;
+import net.masonapps.csgvr.modeling.SolidModelingScreen;
 import net.masonapps.csgvr.primitives.Box;
+import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.primitives.Cylinder;
-import net.masonapps.csgvr.primitives.Solid;
 import net.masonapps.csgvr.ui.DaydreamCameraController;
 import net.masonapps.csgvr.ui.Grid;
 
@@ -31,22 +34,18 @@ import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.geometry.partitioning.RegionFactory;
 import org.masonapps.libgdxgooglevr.GdxVr;
-import org.masonapps.libgdxgooglevr.gfx.VrGame;
-import org.masonapps.libgdxgooglevr.gfx.VrWorldScreen;
 import org.masonapps.libgdxgooglevr.input.DaydreamButtonEvent;
 import org.masonapps.libgdxgooglevr.input.DaydreamControllerInputListener;
 import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
-
-import java.util.ArrayList;
+import org.masonapps.libgdxgooglevr.ui.LabelVR;
 
 /**
  * Created by Bob on 6/12/2017.
  */
 
-public class CsgVrTestScreen extends VrWorldScreen {
+public class CsgVrTestScreen extends SolidModelingScreen {
 
     private final DaydreamCameraController cameraController;
-    private final ArrayList<Solid> solids = new ArrayList<>();
     private final Matrix4 tempM = new Matrix4();
     private final Ray tempRay = new Ray();
     //    private final Entity wireFrame;
@@ -85,7 +84,7 @@ public class CsgVrTestScreen extends VrWorldScreen {
         }
     };
 
-    public CsgVrTestScreen(VrGame game) {
+    public CsgVrTestScreen(SolidModelingVrGame game) {
         super(game);
         setBackgroundColor(Color.DARK_GRAY);
         cameraController = new DaydreamCameraController(getVrCamera());
@@ -102,7 +101,6 @@ public class CsgVrTestScreen extends VrWorldScreen {
         getVrCamera().position.set(0, 1f, 4f);
 
         grid = Grid.newInstance();
-        getWorld().add(grid);
 
         polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
         for (int i = 1; i < 3; i++) {
@@ -122,31 +120,14 @@ public class CsgVrTestScreen extends VrWorldScreen {
 
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
 
-        final Solid solid = new Solid();
+        final Solid solid = new Solid(polyhedronsSet, ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, new Material(ColorAttribute.createDiffuse(Color.GOLD), ColorAttribute.createAmbient(Color.GOLD))));
         manageDisposable(solid);
-        solid.setPolyhedronsSet(polyhedronsSet);
-        solid.material = new Material(ColorAttribute.createDiffuse(Color.GOLD), ColorAttribute.createAmbient(Color.GOLD));
         solids.add(solid);
 //        transformManipulator = new TransformManipulator(entity.transform);
 //        wireFrame = getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(solid.getModelInstance(false).model, Color.BLACK))));
 //        wireFrame.setLightingEnabled(false);
-    }
 
-    @Nullable
-    private Solid getClosestSolid(Ray ray) {
-        float closestDst2 = Float.POSITIVE_INFINITY;
-        final Vector3 hitPoint = new Vector3();
-        Solid selected = null;
-        for (Solid solid : solids) {
-            if (solid.castRay(ray, hitPoint)) {
-                final float dst2 = ray.origin.dst2(hitPoint);
-                if (dst2 < closestDst2) {
-                    closestDst2 = dst2;
-                    selected = solid;
-                }
-            }
-        }
-        return selected;
+        getUiContainer().addProcessor(new LabelVR("Test Label", new SpriteBatch(), game.getSkin()));
     }
 
     @Override
@@ -178,13 +159,6 @@ public class CsgVrTestScreen extends VrWorldScreen {
         super.render(camera, whichEye);
         light.setDirection(camera.direction);
 
-        modelBatch.begin(camera);
-        for (Solid solid : solids) {
-            if (solid.getModelInstance(false) != null)
-                modelBatch.render(solid.getModelInstance(false), environment);
-        }
-        modelBatch.end();
-
         shapeRenderer.setProjectionMatrix(camera.combined);
 
 //        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
@@ -193,6 +167,7 @@ public class CsgVrTestScreen extends VrWorldScreen {
             shapeRenderer.setColor(Color.CYAN);
             renderSubPlane(focusedPlane);
         }
+
         if (selectedPlane != null) {
             shapeRenderer.setColor(Color.LIME);
             renderSubPlane(selectedPlane);
@@ -200,6 +175,12 @@ public class CsgVrTestScreen extends VrWorldScreen {
             grid.setToPlane((Plane) selectedPlane.getHyperplane());
         } else {
             grid.setRenderingEnabled(false);
+        }
+
+        if (grid.isRenderingEnabled()) {
+            modelBatch.begin(camera);
+            modelBatch.render(grid.modelInstance, environment);
+            modelBatch.end();
         }
     }
 

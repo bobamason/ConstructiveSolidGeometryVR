@@ -63,11 +63,11 @@ public class ConversionUtils {
                 * l_mat[Matrix4.M21] + z * l_mat[Matrix4.M22] + l_mat[Matrix4.M23]);
     }
 
-    public static Mesh polyhedronsSetToMesh(PolyhedronsSet polyhedronsSet) {
+    public static Mesh polyhedronsSetToMesh(PolyhedronsSet polyhedronsSet, Vector3D center) {
         final FloatArray vertices = new FloatArray();
         final ShortArray indices = new ShortArray();
 
-        polyhedronsSet.getTree(true).visit(new MeshCreationTreeVisitor(vertices, indices));
+        polyhedronsSet.getTree(true).visit(new MeshCreationTreeVisitor(vertices, indices, center));
         final Mesh mesh = new Mesh(false, vertices.size, indices.size, VertexAttribute.Position(), VertexAttribute.Normal());
         mesh.setIndices(indices.toArray());
         final float[] vertArray = vertices.toArray();
@@ -85,11 +85,12 @@ public class ConversionUtils {
     }
 
     public static ModelInstance polyhedronsSetToModelInstance(PolyhedronsSet polyhedronsSet, Material material) {
-        final Mesh mesh = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet);
+        final Vector3D center = (Vector3D) polyhedronsSet.getBarycenter();
+        final Mesh mesh = ConversionUtils.polyhedronsSetToMesh(polyhedronsSet, center);
         final ModelBuilder modelBuilder = new ModelBuilder();
         modelBuilder.begin();
         modelBuilder.part("mesh", mesh, GL20.GL_TRIANGLES, material);
-        return new ModelInstance(modelBuilder.end());
+        return new ModelInstance(modelBuilder.end(), new Matrix4().setToTranslation(convertVector(center)));
     }
 
     public static PolyhedronsSet meshToPolyhedronSet(Mesh mesh) {
@@ -148,11 +149,13 @@ public class ConversionUtils {
         private final FloatArray vertices;
         private final ShortArray indices;
         private final DelaunayTriangulator triangulator;
+        private final Vector3D center;
         private int startIndex;
 
-        public MeshCreationTreeVisitor(FloatArray vertices, ShortArray indices) {
+        public MeshCreationTreeVisitor(FloatArray vertices, ShortArray indices, Vector3D center) {
             this.vertices = vertices;
             this.indices = indices;
+            this.center = center;
             triangulator = new DelaunayTriangulator();
             startIndex = 0;
         }
@@ -199,7 +202,7 @@ public class ConversionUtils {
             for (Vector2D[] loop : loops) {
 
                 for (Vector2D v : loop) {
-                    addVertex(plane.toSpace(v), plane.getNormal().scalarMultiply(reverse ? -1 : 1), this.vertices);
+                    addVertex(plane.toSpace(v).subtract(center), plane.getNormal().scalarMultiply(reverse ? -1 : 1), this.vertices);
                     tempVerts.add((float) v.getX());
                     tempVerts.add((float) v.getY());
                 }
