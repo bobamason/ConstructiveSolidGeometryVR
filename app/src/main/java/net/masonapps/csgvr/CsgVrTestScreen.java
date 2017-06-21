@@ -100,7 +100,7 @@ public class CsgVrTestScreen extends SolidModelingScreen {
         getVrCamera().near = 0.1f;
         getVrCamera().position.set(0, 1f, 4f);
 
-        grid = Grid.newInstance();
+        grid = Grid.newInstance(r);
 
         polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
         for (int i = 1; i < 3; i++) {

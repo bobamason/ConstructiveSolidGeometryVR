@@ -30,23 +30,22 @@ public class Grid extends Entity {
         setLightingEnabled(false);
     }
 
-    public static final Grid newInstance() {
+    public static final Grid newInstance(float radius) {
 
         final ModelBuilder modelBuilder = new ModelBuilder();
-        float r = 1f;
         final Texture texture = new Texture("grid.png");
         texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
         final Material material = new Material(TextureAttribute.createDiffuse(texture), new BlendingAttribute(), FloatAttribute.createAlphaTest(0.5f), new IntAttribute(IntAttribute.CullFace, 0));
         final Model rect = modelBuilder.createRect(
-                -r, -r, 0f,
-                r, -r, 0f,
-                r, r, 0f,
-                -r, r, 0f,
+                -radius, -radius, 0f,
+                radius, -radius, 0f,
+                radius, radius, 0f,
+                -radius, radius, 0f,
                 0f, 0f, 1f,
                 material,
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.TextureCoordinates
         );
-        rect.meshes.get(0).transformUV(new Matrix3().scale(r * 20f, r * 20f));
+        rect.meshes.get(0).transformUV(new Matrix3().scale(radius * 20f, radius * 20f));
         return new Grid(new ModelInstance(rect));
     }
 
