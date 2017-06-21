@@ -1,5 +1,7 @@
 package net.masonapps.csgvr.csg;
 
+import android.support.annotation.Nullable;
+
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 
@@ -22,17 +24,16 @@ public class CSGPlane {
         this.d = d;
     }
 
-    public CSGPlane(Vector3 a, Vector3 b, Vector3 c) {
-        set(a, b, c);
+    @Nullable
+    public static CSGPlane fromPoints(Vector3 a, Vector3 b, Vector3 c) {
+        Vector3 normal = new Vector3(b).sub(a).crs(c.x - a.x, c.y - a.y, c.z - a.z).nor();
+        if (normal.isZero(1e-5f)) return null;
+        float d = -normal.dot(a);
+        return new CSGPlane(normal, d);
     }
 
     public static Vector3 calculateNormal(Vector3 a, Vector3 b, Vector3 c) {
         return new Vector3().set(b).sub(a).crs(c.x - a.x, c.y - a.y, c.z - a.z).nor();
-    }
-
-    public void set(Vector3 a, Vector3 b, Vector3 c) {
-        normal.set(b).sub(a).crs(c.x - a.x, c.y - a.y, c.z - a.z).nor();
-        d = -normal.dot(a);
     }
 
     public int classifyVertex(Vertex vertex) {
@@ -55,6 +56,7 @@ public class CSGPlane {
     }
 
     public void splitPolygon(CSGPolygon polygon, Array<CSGPolygon> coplanarFront, Array<CSGPolygon> coplanarBack, Array<CSGPolygon> front, Array<CSGPolygon> back) {
+//        if(polygon.plane == null) return;
         switch (classifyPolygon(polygon)) {
             case COPLANAR:
                 if (polygon.plane != null) {
@@ -73,15 +75,17 @@ public class CSGPlane {
             case SPANNING:
                 final Array<Vertex> f = new Array<>(3);
                 final Array<Vertex> b = new Array<>(3);
-                for (int i = 0; i < polygon.getVertexCount(); i++) {
+                final int count = polygon.getVertexCount();
+                for (int i = 0; i < count; i++) {
                     final Vertex va = polygon.vertices.get(i);
-                    final Vertex vb = polygon.vertices.get((i + 1) % polygon.getVertexCount());
+                    final Vertex vb = polygon.vertices.get((i + 1) % count);
                     int cA = classifyVertex(va);
                     int cB = classifyVertex(vb);
                     if (cA != BACK) f.add(va);
                     if (cA != FRONT) b.add(cA != BACK ? va.copy() : va);
                     if ((cA | cB) == SPANNING) {
                         final float t = -getOffset(va) / normal.dot(vb.position.cpy().sub(va.position));
+//                        final float t = Math.abs(-getOffset(va) / normal.dot(vb.position.cpy().sub(va.position)));
                         final Vertex v = new Vertex(va.interpolate(vb, t));
                         f.add(v);
                         b.add(v.copy());

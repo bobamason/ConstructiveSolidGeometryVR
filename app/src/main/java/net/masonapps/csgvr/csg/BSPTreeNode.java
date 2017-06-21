@@ -29,8 +29,14 @@ public class BSPTreeNode {
 
     public void build(Array<CSGPolygon> polygons) {
         if (polygons.size == 0) return;
-        if (divider == null)
-            divider = polygons.get(0).plane.copy();
+        if (divider == null) {
+            for (CSGPolygon polygon : polygons) {
+                if (polygon.plane != null) {
+                    divider = polygon.plane.copy();
+                    break;
+                }
+            }
+        }
         Array<CSGPolygon> frontPolygons = new Array<>();
         Array<CSGPolygon> backPolygons = new Array<>();
         for (int i = 0; i < polygons.size; i++) {
@@ -60,10 +66,6 @@ public class BSPTreeNode {
             }
         }
         return true;
-    }
-
-    public void add(CSGPolygon polygon) {
-
     }
 
     public Array<CSGPolygon> clipPolygons(Array<CSGPolygon> polygons) {

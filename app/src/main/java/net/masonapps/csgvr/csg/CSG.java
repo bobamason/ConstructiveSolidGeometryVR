@@ -40,14 +40,14 @@ public class CSG {
         final int vertexSize = mesh.getVertexSize() / 4;
         float[] vertices = new float[numVertices * vertexSize];
         mesh.getVertices(vertices);
-        Log.i("meshToPolygons vertices", Arrays.toString(vertices));
+        Log.i("meshToPolygons vertexArray", Arrays.toString(vertices));
         short[] indices = new short[mesh.getNumIndices()];
         mesh.getIndices(indices);
 
 //        final ShortArray newIndices = new ShortArray();
 //        final FloatArray newVertices = new FloatArray();
-//        removeDoubles(vertices, indices, vertexSize, newVertices, newIndices);
-//        vertices = newVertices.toArray();
+//        removeDoubles(vertexArray, indices, vertexSize, newVertices, newIndices);
+//        vertexArray = newVertices.toArray();
 //        indices = newIndices.toArray();
 
         final Array<Vertex> tmpVerts = new Array<>(3);
@@ -152,7 +152,7 @@ public class CSG {
         final Mesh mesh = new Mesh(false, vertices.size, indices.size, VertexAttribute.Position(), VertexAttribute.Normal(), VertexAttribute.TexCoords(0));
         mesh.setVertices(vertices.toArray());
         mesh.setIndices(indices.toArray());
-//        Log.i("polygonsToMesh vertices", Arrays.toString(vertArray));
+//        Log.i("polygonsToMesh vertexArray", Arrays.toString(vertArray));
         return mesh;
     }
 
