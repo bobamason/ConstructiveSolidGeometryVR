@@ -91,8 +91,8 @@ public class CSGPlane {
                         b.add(v.copy());
                     }
                 }
-//                removeDoubles(f);
-//                removeDoubles(b);
+//                removeDuplicates(f);
+//                removeDuplicates(b);
                 if (f.size >= 3) front.add(new CSGPolygon(f));
                 if (b.size >= 3) back.add(new CSGPolygon(b));
                 break;

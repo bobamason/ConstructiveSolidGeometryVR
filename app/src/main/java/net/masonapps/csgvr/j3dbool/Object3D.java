@@ -47,8 +47,8 @@ public class Object3D implements Cloneable {
      */
     public Object3D(Solid solid) {
         Vertex v1, v2, v3, vertex;
-        Vector3[] verticesPoints = new Vector3[solid.getVertexArray().length];
-        int[] indices = solid.getIndices();
+        Vector3[] verticesPoints = solid.getVertexPositions();
+        short[] indices = solid.getIndices();
         Color[] colors = solid.getColors();
         ArrayList<Vertex> verticesTemp = new ArrayList<>();
 

@@ -92,8 +92,8 @@ public class Solid extends Mesh {
      *
      * @return solid indices for its vertexArray
      */
-    public int[] getIndices() {
-        int[] newIndices = new int[indices.length];
+    public short[] getIndices() {
+        short[] newIndices = new short[indices.length];
         System.arraycopy(indices, 0, newIndices, 0, indices.length);
         return newIndices;
     }
@@ -330,5 +330,13 @@ public class Solid extends Mesh {
         mean.z /= vertexArray.length;
 
         return mean;
+    }
+
+    public Vector3[] getVertexPositions() {
+        final Vector3[] positions = new Vector3[vertexArray.length];
+        for (int i = 0; i < vertexArray.length; i++) {
+            positions[i] = vertexArray[i].getPosition();
+        }
+        return positions;
     }
 }

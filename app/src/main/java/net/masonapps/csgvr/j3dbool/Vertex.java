@@ -80,7 +80,7 @@ public class Vertex implements Cloneable {
         y = position.y;
         z = position.z;
 
-        adjacentVertices = new ArrayList();
+        adjacentVertices = new ArrayList<>();
         status = UNKNOWN;
     }
 
@@ -99,7 +99,7 @@ public class Vertex implements Cloneable {
         this.y = y;
         this.z = z;
 
-        adjacentVertices = new ArrayList();
+        adjacentVertices = new ArrayList<>();
         status = UNKNOWN;
     }
 
@@ -117,7 +117,7 @@ public class Vertex implements Cloneable {
         y = position.y;
         z = position.z;
 
-        adjacentVertices = new ArrayList();
+        adjacentVertices = new ArrayList<>();
         this.status = status;
     }
 
@@ -137,7 +137,7 @@ public class Vertex implements Cloneable {
         this.y = y;
         this.z = z;
 
-        adjacentVertices = new ArrayList();
+        adjacentVertices = new ArrayList<>();
         this.status = status;
     }
 
@@ -156,7 +156,7 @@ public class Vertex implements Cloneable {
             clone.z = z;
             clone.color = color.cpy();
             clone.status = status;
-            clone.adjacentVertices = new ArrayList();
+            clone.adjacentVertices = new ArrayList<>();
             for (int i = 0; i < adjacentVertices.size(); i++) {
                 clone.adjacentVertices.add((Vertex) adjacentVertices.get(i).clone());
             }

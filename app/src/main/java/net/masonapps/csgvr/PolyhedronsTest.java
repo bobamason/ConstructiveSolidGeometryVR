@@ -67,7 +67,7 @@ class PolyhedronsTest implements ApplicationListener {
         light.setDirection(new Vector3(1, -1, -1).nor());
         environment.add(light);
 
-        grid = Grid.newInstance(r);
+        grid = Grid.newInstance(5f);
 
         final ModelBuilder modelBuilder = new ModelBuilder();
         final Model model = modelBuilder.createBox(1f, 1f, 1f, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);

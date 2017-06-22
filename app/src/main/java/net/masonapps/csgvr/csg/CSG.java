@@ -1,6 +1,7 @@
 package net.masonapps.csgvr.csg;
 
 import android.util.Log;
+import android.util.SparseIntArray;
 
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
@@ -10,7 +11,6 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.ShortArray;
@@ -40,15 +40,28 @@ public class CSG {
         final int vertexSize = mesh.getVertexSize() / 4;
         float[] vertices = new float[numVertices * vertexSize];
         mesh.getVertices(vertices);
-        Log.i("meshToPolygons vertexArray", Arrays.toString(vertices));
         short[] indices = new short[mesh.getNumIndices()];
         mesh.getIndices(indices);
 
-//        final ShortArray newIndices = new ShortArray();
-//        final FloatArray newVertices = new FloatArray();
-//        removeDoubles(vertexArray, indices, vertexSize, newVertices, newIndices);
-//        vertexArray = newVertices.toArray();
-//        indices = newIndices.toArray();
+        final ShortArray newIndices = new ShortArray();
+        final Array<Vertex> newVertices = new Array<>();
+        removeDuplicateVertices(vertices, indices, vertexSize, newVertices, newIndices);
+        vertices = new float[newVertices.size * vertexSize];
+        for (int i = 0; i < newVertices.size; i++) {
+            final Vertex vertex = newVertices.get(i);
+            final int index = i * vertexSize;
+            vertices[index] = vertex.position.x;
+            vertices[index + 1] = vertex.position.y;
+            vertices[index + 2] = vertex.position.z;
+
+            vertices[index + 3] = vertex.normal.x;
+            vertices[index + 4] = vertex.normal.y;
+            vertices[index + 5] = vertex.normal.z;
+
+            vertices[index + 6] = vertex.uv.x;
+            vertices[index + 7] = vertex.uv.y;
+        }
+        indices = newIndices.toArray();
 
         final Array<Vertex> tmpVerts = new Array<>(3);
         final Vertex a = new Vertex();
@@ -80,43 +93,42 @@ public class CSG {
             tmpVerts.add(a);
             tmpVerts.add(b);
             tmpVerts.add(c);
+//            CSGPolygon.removeDuplicates(tmpVerts);
+//            if (tmpVerts.size > 3)
             polygons.add(new CSGPolygon(tmpVerts));
         }
         return polygons;
     }
 
-    private static void removeDoubles(float[] vertices, short[] indices, int vertexSize, FloatArray newVertices, ShortArray newIndices) {
-        final Vector3 v1 = new Vector3();
-        final Vector3 v2 = new Vector3();
-        int newIndex;
-        for (int i = 0; i < indices.length; i++) {
-            final short ii = indices[i];
-            int i1 = ii * vertexSize;
-            v1.set(vertices[i1], vertices[i1 + 1], vertices[i1 + 2]);
+    private static void removeDuplicateVertices(float[] vertices, short[] indices, int vertexSize, Array<Vertex> newVertices, ShortArray newIndices) {
+        final float tolerance = 1e-5f;
+        SparseIntArray indexMap = new SparseIntArray();
+        for (int i = 0; i < vertices.length / vertexSize; i++) {
             boolean isDouble = false;
-            newIndex = -1;
-            for (int j = 0; j < newIndices.size; j++) {
-                final short ij = newIndices.get(j);
-                if (ii == ij) continue;
-                int i2 = ij * vertexSize;
-                v2.set(vertices[i2], vertices[i2 + 1], vertices[i2 + 2]);
-                if (v1.epsilonEquals(v2, 1e-5f)) {
+            final Vertex v = new Vertex();
+            int index = i * vertexSize;
+            v.position.set(vertices[index], vertices[index + 1], vertices[index + 2]);
+            v.normal.set(vertices[index + 3], vertices[index + 4], vertices[index + 5]);
+            v.uv.set(vertices[index + 6], vertices[index + 7]);
+            for (int j = 0; j < newVertices.size; j++) {
+                if (newVertices.get(j).position.dst(v.position) <= tolerance) {
+                    Log.d("remove duplicate", "duplicate found i: " + i + " j: " + j);
+                    indexMap.put(i, j);
                     isDouble = true;
-                    newIndex = Math.min(ii, ij);
-                    Log.i("** double found ", newIndex + " matches " + ii);
                     break;
                 }
-            }
-            if (!isDouble) {
-                for (int j = 0; j < vertexSize; j++) {
-                    newVertices.add(vertices[i1 + j]);
                 }
-                newIndices.add(ii);
-            } else if (newIndex != -1) {
-                newIndices.add(newIndex);
+            if (!isDouble) {
+                indexMap.put(i, newVertices.size);
+                newVertices.add(v);
+                }
             }
+
+        for (int i = 0; i < indices.length; i++) {
+            int index = indices[i];
+            newIndices.add(indexMap.get(index, index));
         }
-    }
+        }
 
     public static Mesh toMesh(CSG csg) {
         return polygonsToMesh(csg.tree.getAllPolygons());
@@ -150,9 +162,10 @@ public class CSG {
             startIndex = vertices.size / 8;
         }
         final Mesh mesh = new Mesh(false, vertices.size, indices.size, VertexAttribute.Position(), VertexAttribute.Normal(), VertexAttribute.TexCoords(0));
-        mesh.setVertices(vertices.toArray());
+        final float[] vertexArray = vertices.toArray();
+        mesh.setVertices(vertexArray);
         mesh.setIndices(indices.toArray());
-//        Log.i("polygonsToMesh vertexArray", Arrays.toString(vertArray));
+        Log.i("polygonsToMesh", Arrays.toString(vertexArray));
         return mesh;
     }
 

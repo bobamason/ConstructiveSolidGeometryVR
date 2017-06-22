@@ -17,7 +17,7 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.CapsuleShapeBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
@@ -47,7 +47,7 @@ public class SimpleCSGTest implements ApplicationListener {
     private static Model createModel(ModelBuilder modelBuilder, float radius) {
         modelBuilder.begin();
         final MeshPartBuilder part = modelBuilder.part("model", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, new Material(ColorAttribute.createDiffuse(Color.BLUE)));
-        BoxShapeBuilder.build(part, radius * 2f, radius * 2f, radius * 2f);
+        CapsuleShapeBuilder.build(part, radius * 0.75f, radius * 2f, 8);
         return modelBuilder.end();
     }
 
@@ -68,17 +68,18 @@ public class SimpleCSGTest implements ApplicationListener {
         modelBuilder = new ModelBuilder();
 
         final ModelInstance s1 = new ModelInstance(createModel(modelBuilder, 1f));
-        final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.75f, 0.75f, 0.75f);
+        final ModelInstance s2 = new ModelInstance(createModel(modelBuilder, 0.5f), 0.5f, 0.5f, 0.5f);
         csg1 = CSG.fromMesh(s1.model.meshes.get(0), s1.transform);
-        csg2 = CSG.fromMesh(s2.model.meshes.get(0), s2.transform).union(csg1);
+//        csg2 = CSG.fromMesh(s2.model.meshes.get(0), s2.transform);
+        csg2 = csg1.subtract(CSG.fromMesh(s2.model.meshes.get(0), s2.transform));
 //        instances.add(s1);
 //        instances.add(s2);
 
 
         final Material material = new Material(ColorAttribute.createDiffuse(Color.GOLD), ColorAttribute.createSpecular(Color.GOLD), FloatAttribute.createShininess(50f));
-        final ModelInstance modelInstance = CSG.toModelInstance(csg2, material);
+//        final ModelInstance modelInstance = CSG.toModelInstance(csg2, material);
 
-        instances.add(modelInstance);
+//        instances.add(modelInstance);
 
 //            modelBuilder.begin();
 //            final Mesh mesh2 = CSG.toMesh();
@@ -109,6 +110,7 @@ public class SimpleCSGTest implements ApplicationListener {
         modelBatch.end();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
+//        renderCSGTree(csg1, Color.WHITE, Color.LIME);
         renderCSGTree(csg2, Color.WHITE, Color.LIME);
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
@@ -128,7 +130,7 @@ public class SimpleCSGTest implements ApplicationListener {
                 final Vector3 p1 = v1.position;
                 final Vector3 p2 = v2.position;
                 final Vector3 n;
-                if (!polygon.plane.normal.isZero(1e-3f)) {
+                if (polygon.plane != null) {
                     shapeRenderer.setColor(color);
                     shapeRenderer.line(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
                     n = polygon.plane.normal;

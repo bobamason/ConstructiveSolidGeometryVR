@@ -5,19 +5,25 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 
+import net.masonapps.csgvr.j3dbool.BooleanModeller;
+import net.masonapps.csgvr.j3dbool.Solid;
+import net.masonapps.csgvr.j3dbool.SolidUtils;
 import net.masonapps.csgvr.ui.Grid;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
@@ -56,8 +62,21 @@ public class J3DBoolTest implements ApplicationListener {
         grid.setRenderingEnabled(true);
         grid.setToPlane(new Plane(new Vector3D(0, 1, 0), 1e-10));
 
-        final Material material = new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
+        final Material material = new Material(ColorAttribute.createDiffuse(Color.WHITE), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
 //        transformManipulator = new TransformManipulator(modelInstance.transform);
+
+        final ModelBuilder modelBuilder = new ModelBuilder();
+        final Model boxModel = modelBuilder.createBox(1f, 1f, 1f, material, VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        final Solid box = SolidUtils.createBox(1f, 1f, 1f, Color.GREEN);
+        final Solid box2 = SolidUtils.createBox(1f, 1f, 1f, Color.RED);
+        box2.translate(0.5f, 0.5f, 0.5f);
+
+        BooleanModeller modeller = new BooleanModeller(box, box2);
+        final Solid combined = modeller.getDifference();
+
+        modelBuilder.begin();
+        modelBuilder.part("", combined, GL20.GL_TRIANGLES, material);
+        instances.add(new ModelInstance(modelBuilder.end()));
     }
 
     @Override
