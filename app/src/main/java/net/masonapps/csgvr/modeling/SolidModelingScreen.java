@@ -1,7 +1,6 @@
 package net.masonapps.csgvr.modeling;
 
 import android.support.annotation.CallSuper;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
@@ -82,26 +81,9 @@ public class SolidModelingScreen extends VrScreen {
         uiContainer.draw(camera);
         getModelBatch().begin(camera);
         for (Solid solid : solids) {
-            getModelBatch().render(solid.getModelInstance(), environment);
+            getModelBatch().render(solid.modelInstance, environment);
         }
         getModelBatch().end();
-    }
-
-    @Nullable
-    public Solid getClosestSolid(Ray ray) {
-        float closestDst2 = Float.POSITIVE_INFINITY;
-        final Vector3 hitPoint = new Vector3();
-        Solid selected = null;
-        for (Solid solid : solids) {
-            if (solid.castRay(ray, hitPoint)) {
-                final float dst2 = ray.origin.dst2(hitPoint);
-                if (dst2 < closestDst2) {
-                    closestDst2 = dst2;
-                    selected = solid;
-                }
-            }
-        }
-        return selected;
     }
 
     @Override

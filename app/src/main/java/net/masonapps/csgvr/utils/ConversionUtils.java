@@ -1,4 +1,4 @@
-package net.masonapps.csgvr.primitives;
+package net.masonapps.csgvr.utils;
 
 import android.util.Log;
 import android.util.SparseIntArray;

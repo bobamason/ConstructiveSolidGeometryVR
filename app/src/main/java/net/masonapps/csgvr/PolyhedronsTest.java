@@ -23,9 +23,9 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 
-import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.ui.Grid;
 import net.masonapps.csgvr.ui.TransformManipulator;
+import net.masonapps.csgvr.utils.ConversionUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;

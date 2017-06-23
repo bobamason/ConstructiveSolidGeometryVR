@@ -4,7 +4,6 @@ import android.support.annotation.Nullable;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
@@ -12,9 +11,8 @@ import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.math.collision.Ray;
-import com.badlogic.gdx.utils.Disposable;
 
-import net.masonapps.csgvr.primitives.ConversionUtils;
+import net.masonapps.csgvr.utils.ConversionUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
@@ -23,12 +21,13 @@ import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.masonapps.libgdxgooglevr.GdxVr;
+import org.masonapps.libgdxgooglevr.gfx.Entity;
 
 /**
  * Created by Bob on 6/13/2017.
  */
 
-public class Solid implements Disposable {
+public class Solid extends Entity {
     private static final Vector3 dir = new Vector3();
     private static final Vector3 tmp = new Vector3();
     private static final Vector3 tmp2 = new Vector3();
@@ -37,70 +36,53 @@ public class Solid implements Disposable {
     private final Quaternion rotator = new Quaternion();
     private final Matrix4 inverse = new Matrix4();
     public double tolerance = 1e-10;
-    public Material material = new Material();
-    @Nullable
-    protected PolyhedronsSet polyhedronsSet = null;
-    @Nullable
-    protected ModelInstance modelInstance = null;
-    protected boolean isPolyhedronsSetUpdated = false;
-    protected boolean isModelInstanceUpdated = false;
+    protected PolyhedronsSet polyhedronsSet;
+    protected boolean isTransformUpdated = false;
     private BoundingBox boundingBox = new BoundingBox();
     private Ray tempRay = new Ray();
     private Vector3 lastPosition = new Vector3();
     private Quaternion lastRotation = new Quaternion();
 
-    public Solid(@Nullable PolyhedronsSet polyhedronsSet, @Nullable ModelInstance modelInstance) {
+    public Solid(PolyhedronsSet polyhedronsSet) {
+        super(ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, new Material(ColorAttribute.createDiffuse(Color.SKY))));
         this.polyhedronsSet = polyhedronsSet;
-        this.modelInstance = modelInstance;
-        if (this.modelInstance != null) {
-            this.material = this.modelInstance.materials.first();
-            this.modelInstance.transform.getTranslation(position);
-            this.modelInstance.transform.getRotation(rotation);
-        } else {
-            this.material = new Material(ColorAttribute.createDiffuse(Color.SKY));
-        }
     }
 
     protected Solid() {
-        this(null, null);
+        this(null);
     }
 
     @Nullable
     public PolyhedronsSet getPolyhedronsSet() {
-        if (polyhedronsSet != null && isPolyhedronsSetUpdated) {
-            polyhedronsSet.translate(new Vector3D(position.x - lastPosition.x, position.y - lastPosition.y, position.z - lastPosition.z));
-            final Quaternion quat = new Quaternion(lastRotation).conjugate().mul(rotation).nor();
-            polyhedronsSet.rotate(new Vector3D(0, 0, 0), new Rotation(quat.w, quat.x, quat.y, quat.z, false));
-            lastPosition.set(position);
-            lastRotation.set(rotation);
-        }
         return polyhedronsSet;
     }
 
-    @Nullable
-    public ModelInstance getModelInstance() {
-        if (!isModelInstanceUpdated) {
-            updateTransformAndBounds();
-        }
-        return modelInstance;
-    }
+    protected void updateTransform() {
+        if (isTransformUpdated) return;
 
-    private void updateTransformAndBounds() {
-        if (modelInstance != null) {
-            modelInstance.transform.set(position, rotation);
-            inverse.set(modelInstance.transform).inv();
-            modelInstance.calculateBoundingBox(boundingBox);
+        polyhedronsSet.translate(new Vector3D(position.x - lastPosition.x, position.y - lastPosition.y, position.z - lastPosition.z));
+
+        final Quaternion q = new Quaternion(lastRotation).conjugate().mul(rotation).nor();
+        if (!q.isIdentity(1e-5f)) {
+            polyhedronsSet.rotate((Vector3D) polyhedronsSet.getBarycenter(), new Rotation(q.w, q.x, q.y, q.z, false));
+            lastPosition.set(position);
+            lastRotation.set(rotation);
         }
+
+        final Vector3 baryCenter = ConversionUtils.convertVector((Vector3D) polyhedronsSet.getBarycenter());
+        modelInstance.transform.idt();
+        modelInstance.transform.translate(-baryCenter.x, -baryCenter.y, -baryCenter.z);
+        modelInstance.transform.rotate(rotation);
+        modelInstance.transform.translate(baryCenter.x + position.x, baryCenter.y + position.y, baryCenter.z + position.z);
+
+        isTransformUpdated = true;
     }
 
     public boolean castRay(Ray ray, Vector3 hitPoint) {
-        if (!isModelInstanceUpdated) {
-            updateTransformAndBounds();
-        }
+        updateTransform();
         if (polyhedronsSet != null) {
             if (Intersector.intersectRayBoundsFast(ray, boundingBox)) {
                 tempRay.set(GdxVr.input.getInputRay());
-                tempRay.mul(inverse);
                 final Vector3D point = ConversionUtils.convertVector(tempRay.origin);
                 final Vector3D point2 = ConversionUtils.convertVector(tempRay.direction).add(point);
                 final SubPlane plane3D = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
@@ -238,13 +220,6 @@ public class Solid implements Disposable {
     }
 
     private void invalidate() {
-        isModelInstanceUpdated = false;
-        isPolyhedronsSetUpdated = false;
-    }
-
-    @Override
-    public void dispose() {
-        if (modelInstance != null)
-            modelInstance.model.dispose();
+        isTransformUpdated = false;
     }
 }

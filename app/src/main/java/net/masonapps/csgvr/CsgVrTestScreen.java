@@ -20,10 +20,10 @@ import com.google.vr.sdk.controller.Controller;
 import net.masonapps.csgvr.modeling.Solid;
 import net.masonapps.csgvr.modeling.SolidModelingScreen;
 import net.masonapps.csgvr.primitives.Box;
-import net.masonapps.csgvr.primitives.ConversionUtils;
 import net.masonapps.csgvr.primitives.Cylinder;
 import net.masonapps.csgvr.ui.DaydreamCameraController;
 import net.masonapps.csgvr.ui.Grid;
+import net.masonapps.csgvr.utils.ConversionUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;

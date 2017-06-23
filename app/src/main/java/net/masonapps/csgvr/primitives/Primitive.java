@@ -13,8 +13,7 @@ import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 public abstract class Primitive extends Solid {
 
     public Primitive() {
-        super();
-        modelInstance = ConversionUtils.polyhedronsSetToModelInstance(getPolyhedronsSet(), material);
+        super(createPolyhedronsSet());
     }
 
     @Override
@@ -27,5 +26,5 @@ public abstract class Primitive extends Solid {
         return polyhedronsSet;
     }
 
-    protected abstract PolyhedronsSet createPolyhedronsSet(Matrix4 transform);
+    protected abstract PolyhedronsSet createPolyhedronsSet();
 }

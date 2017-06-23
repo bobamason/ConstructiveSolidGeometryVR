@@ -3,6 +3,8 @@ package net.masonapps.csgvr.primitives;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
+import net.masonapps.csgvr.utils.ConversionUtils;
+
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
