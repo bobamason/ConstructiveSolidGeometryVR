@@ -4,27 +4,21 @@ import com.badlogic.gdx.math.Matrix4;
 
 import net.masonapps.csgvr.modeling.Solid;
 
-import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
-
 /**
  * Created by Bob on 5/16/2017.
  */
 
-public abstract class Primitive extends Solid {
+public abstract class Primitive {
+    public Matrix4 transform = new Matrix4();
+    protected double tolerance = 1e-10;
 
-    public Primitive() {
-        super(createPolyhedronsSet());
+    public abstract Solid createSolid();
+
+    public double getTolerance() {
+        return tolerance;
     }
 
-    @Override
-    public PolyhedronsSet getPolyhedronsSet() {
-        if (polyhedronsSet == null || !isPolyhedronsSetUpdated) {
-            final Matrix4 transform = new Matrix4().set(position, rotation);
-            polyhedronsSet = createPolyhedronsSet(transform);
-            isPolyhedronsSetUpdated = true;
-        }
-        return polyhedronsSet;
+    public void setTolerance(double tolerance) {
+        this.tolerance = tolerance;
     }
-
-    protected abstract PolyhedronsSet createPolyhedronsSet();
 }

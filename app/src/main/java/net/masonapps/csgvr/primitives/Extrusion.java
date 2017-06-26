@@ -29,8 +29,9 @@ import java.util.List;
  * Created by Bob on 5/19/2017.
  */
 
-public class Extrusion extends Primitive {
+public class Extrusion {
 
+    protected double tolerance = 1e-10;
     private double depth;
     private SubPlane subPlane;
 
@@ -44,7 +45,6 @@ public class Extrusion extends Primitive {
         this.depth = depth;
     }
     
-    @Override
     protected PolyhedronsSet createPolyhedronsSet(Matrix4 transform) {
         return createUsingSubHyperplanes();
 //        return createUsingFacets();

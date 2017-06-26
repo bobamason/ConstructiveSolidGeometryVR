@@ -3,6 +3,7 @@ package net.masonapps.csgvr.primitives;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 
+import net.masonapps.csgvr.modeling.Solid;
 import net.masonapps.csgvr.utils.ConversionUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
@@ -32,8 +33,7 @@ public class Cylinder extends Primitive {
     }
 
     @Override
-    protected PolyhedronsSet createPolyhedronsSet(Matrix4 transform) {
-
+    public Solid createSolid() {
         final Plane[] planes = new Plane[divisions + 2];
         Matrix4 rotMatrix = new Matrix4(transform.getRotation(new Quaternion()));
         planes[0] = new Plane(ConversionUtils.mulVector3D(transform, new Vector3D(0, height / 2.0, 0)), ConversionUtils.mulVector3D(rotMatrix, new Vector3D(0, 1, 0)), tolerance);
@@ -45,6 +45,6 @@ public class Cylinder extends Primitive {
             double z = radius * Math.sin(a);
             planes[i + 2] = new Plane(ConversionUtils.mulVector3D(transform, new Vector3D(x, y, z)), ConversionUtils.mulVector3D(rotMatrix, new Vector3D(x, y, z)), tolerance);
         }
-        return (PolyhedronsSet) new RegionFactory<Euclidean3D>().buildConvex(planes);
+        return new Solid((PolyhedronsSet) new RegionFactory<Euclidean3D>().buildConvex(planes));
     }
 }

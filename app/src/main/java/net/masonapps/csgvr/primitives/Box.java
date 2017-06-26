@@ -1,8 +1,8 @@
 package net.masonapps.csgvr.primitives;
 
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
+import net.masonapps.csgvr.modeling.Solid;
 import net.masonapps.csgvr.utils.ConversionUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
@@ -21,10 +21,6 @@ public class Box extends Primitive {
     public float height;
     public float depth;
 
-    public Box() {
-        this(1, 1, 1);
-    }
-
     public Box(float width, float height, float depth) {
         this.width = width;
         this.height = height;
@@ -32,7 +28,7 @@ public class Box extends Primitive {
     }
 
     @Override
-    protected PolyhedronsSet createPolyhedronsSet(Matrix4 transform) {
+    public Solid createSolid() {
         List<Vector3D> vertices = new ArrayList<>();
         List<int[]> facets = new ArrayList<>();
 
@@ -64,7 +60,7 @@ public class Box extends Primitive {
         //7
         temp.set(-hw, -hh, hd).mul(transform);
         vertices.add(ConversionUtils.convertVector(temp));
-        
+
         //top
         facets.add(new int[]{0, 1, 2, 3});
         //bottom
@@ -78,6 +74,6 @@ public class Box extends Primitive {
         //right
         facets.add(new int[]{6, 5, 2, 1});
 
-        return new PolyhedronsSet(vertices, facets, tolerance);
+        return new Solid(new PolyhedronsSet(vertices, facets, 1e-10));
     }
 }

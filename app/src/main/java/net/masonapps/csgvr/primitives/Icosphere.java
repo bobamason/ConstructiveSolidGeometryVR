@@ -1,8 +1,8 @@
 package net.masonapps.csgvr.primitives;
 
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
+import net.masonapps.csgvr.modeling.Solid;
 import net.masonapps.csgvr.utils.ConversionUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
@@ -27,7 +27,7 @@ public class Icosphere extends Primitive {
     }
 
     @Override
-    protected PolyhedronsSet createPolyhedronsSet(Matrix4 transform) {
+    public Solid createSolid() {
         List<Vector3> tempVerts = new ArrayList<>();
         List<Vector3D> vertices = new ArrayList<>();
 
@@ -83,7 +83,7 @@ public class Icosphere extends Primitive {
             vertices.add(ConversionUtils.convertVector(tempVerts.get(i).mul(transform)));
         }
         tempVerts.clear();
-        return new PolyhedronsSet(vertices, facets, tolerance);
+        return new Solid(new PolyhedronsSet(vertices, facets, tolerance));
     }
 
     private void subdivide(List<Vector3> vertices, List<int[]> faces) {

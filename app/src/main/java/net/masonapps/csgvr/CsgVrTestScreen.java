@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.Environment;
-import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
@@ -19,11 +18,11 @@ import com.google.vr.sdk.controller.Controller;
 
 import net.masonapps.csgvr.modeling.Solid;
 import net.masonapps.csgvr.modeling.SolidModelingScreen;
+import net.masonapps.csgvr.modeling.SolidWorld;
 import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.Cylinder;
 import net.masonapps.csgvr.ui.DaydreamCameraController;
 import net.masonapps.csgvr.ui.Grid;
-import net.masonapps.csgvr.utils.ConversionUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
@@ -71,7 +70,7 @@ public class CsgVrTestScreen extends SolidModelingScreen {
         public void onButtonEvent(Controller controller, DaydreamButtonEvent event) {
             if (event.button == DaydreamButtonEvent.BUTTON_TOUCHPAD) {
                 if (event.action == DaydreamButtonEvent.ACTION_DOWN && selectedSolid != null) {
-                    selectedSolid = getClosestSolid(GdxVr.input.getInputRay());
+                    selectedSolid = getSolidWorld().getClosestSolid(GdxVr.input.getInputRay());
                 } else if (event.action == DaydreamButtonEvent.ACTION_UP) {
                     selectedSolid = null;
                 }
@@ -102,32 +101,35 @@ public class CsgVrTestScreen extends SolidModelingScreen {
 
         grid = Grid.newInstance(5f);
 
-        polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
+        polyhedronsSet = new Box(2, 0.25f, 2).createSolid().getPolyhedronsSet();
         for (int i = 1; i < 3; i++) {
             final Box box = new Box(2, 0.25f, 2);
-            box.rotateY(30 * i);
-            polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, box.getPolyhedronsSet());
+            box.transform.rotate(Vector3.Y, 30 * i);
+            polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, box.createSolid().getPolyhedronsSet());
         }
 
         final Cylinder cylinder = new Cylinder(0.5f, 0.5f);
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, cylinder.getPolyhedronsSet());
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, cylinder.createSolid().getPolyhedronsSet());
 
         final Cylinder hole = new Cylinder(0.25f, 1f);
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(polyhedronsSet, hole.getPolyhedronsSet());
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(polyhedronsSet, hole.createSolid().getPolyhedronsSet());
         final Cylinder rounded = new Cylinder((float) (Math.sqrt(2) * 0.95), 0.5f);
         rounded.divisions = 24;
-        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().intersection(polyhedronsSet, rounded.getPolyhedronsSet());
+        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().intersection(polyhedronsSet, rounded.createSolid().getPolyhedronsSet());
 
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
 
-        final Solid solid = new Solid(polyhedronsSet, ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, new Material(ColorAttribute.createDiffuse(Color.GOLD), ColorAttribute.createAmbient(Color.GOLD))));
-        manageDisposable(solid);
-        solids.add(solid);
+        final Solid solid = new Solid(polyhedronsSet);
+        getWorld().add(solid);
 //        transformManipulator = new TransformManipulator(entity.transform);
 //        wireFrame = getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(solid.getModelInstance(false).model, Color.BLACK))));
 //        wireFrame.setLightingEnabled(false);
 
         getUiContainer().addProcessor(new LabelVR("Test Label", new SpriteBatch(), game.getSkin()));
+    }
+
+    private SolidWorld getSolidWorld() {
+        return (SolidWorld) getWorld();
     }
 
     @Override
