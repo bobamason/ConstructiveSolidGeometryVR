@@ -14,6 +14,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.google.vr.sdk.controller.Controller;
 
 import net.masonapps.csgvr.modeling.Solid;
@@ -36,7 +38,7 @@ import org.masonapps.libgdxgooglevr.GdxVr;
 import org.masonapps.libgdxgooglevr.input.DaydreamButtonEvent;
 import org.masonapps.libgdxgooglevr.input.DaydreamControllerInputListener;
 import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
-import org.masonapps.libgdxgooglevr.ui.LabelVR;
+import org.masonapps.libgdxgooglevr.ui.TextButtonVR;
 
 /**
  * Created by Bob on 6/12/2017.
@@ -47,6 +49,8 @@ public class CsgVrTestScreen extends SolidModelingScreen {
     private final DaydreamCameraController cameraController;
     private final Matrix4 tempM = new Matrix4();
     private final Ray tempRay = new Ray();
+    private final Vector3 tempV = new Vector3();
+    private SpriteBatch spriteBatch;
     //    private final Entity wireFrame;
     private ModelBatch modelBatch;
     private ShapeRenderer shapeRenderer;
@@ -125,7 +129,16 @@ public class CsgVrTestScreen extends SolidModelingScreen {
 //        wireFrame = getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(solid.getModelInstance(false).model, Color.BLACK))));
 //        wireFrame.setLightingEnabled(false);
 
-        getUiContainer().addProcessor(new LabelVR("Test Label", new SpriteBatch(), game.getSkin()));
+        spriteBatch = new SpriteBatch();
+        final TextButtonVR addCubeButton = new TextButtonVR(spriteBatch, "Add Cube", game.getSkin());
+        addCubeButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                getSolidWorld().add(new Box(1f, 1f, 1f).createSolid());
+            }
+        });
+
+        getUiContainer().addProcessor(addCubeButton);
     }
 
     private SolidWorld getSolidWorld() {
@@ -152,6 +165,9 @@ public class CsgVrTestScreen extends SolidModelingScreen {
             selectedSolid.translate(GdxVr.input.getInputRay().direction);
             selectedSolid.translate(GdxVr.input.getInputRay().direction);
         }
+
+        getUiContainer().setPosition(getVrCamera().position);
+        getUiContainer().lookAt(tempV.set(getVrCamera().position).add(getVrCamera().direction), Vector3.Y);
 //        wireFrame.transform.set(solid.getModelInstance(false).transform);
     }
 
@@ -165,19 +181,19 @@ public class CsgVrTestScreen extends SolidModelingScreen {
 
 //        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
 
-        if (focusedPlane != null) {
-            shapeRenderer.setColor(Color.CYAN);
-            renderSubPlane(focusedPlane);
-        }
-
-        if (selectedPlane != null) {
-            shapeRenderer.setColor(Color.LIME);
-            renderSubPlane(selectedPlane);
-            grid.setRenderingEnabled(true);
-            grid.setToPlane((Plane) selectedPlane.getHyperplane());
-        } else {
-            grid.setRenderingEnabled(false);
-        }
+//        if (focusedPlane != null) {
+//            shapeRenderer.setColor(Color.CYAN);
+//            renderSubPlane(focusedPlane);
+//        }
+//
+//        if (selectedPlane != null) {
+//            shapeRenderer.setColor(Color.LIME);
+//            renderSubPlane(selectedPlane);
+//            grid.setRenderingEnabled(true);
+//            grid.setToPlane((Plane) selectedPlane.getHyperplane());
+//        } else {
+//            grid.setRenderingEnabled(false);
+//        }
 
         if (grid.isRenderingEnabled()) {
             modelBatch.begin(camera);
@@ -206,5 +222,8 @@ public class CsgVrTestScreen extends SolidModelingScreen {
         super.dispose();
         modelBatch.dispose();
         shapeRenderer.dispose();
+        if (spriteBatch != null)
+            spriteBatch.dispose();
+        spriteBatch = null;
     }
 }
