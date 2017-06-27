@@ -113,7 +113,7 @@ public class J3DBoolTest implements ApplicationListener {
     private void update() {
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
-//            transformManipulator.rayTest(ray);
+//            transformManipulator.inputDown(ray);
         }
     }
 

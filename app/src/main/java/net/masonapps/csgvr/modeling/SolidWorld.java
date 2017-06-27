@@ -14,21 +14,29 @@ import org.masonapps.libgdxgooglevr.gfx.World;
 
 public class SolidWorld extends World {
 
+    private final Vector3 tempV = new Vector3();
+
     public SolidWorld() {
     }
 
     @Nullable
     public Solid getClosestSolid(Ray ray) {
+        return getClosestSolid(ray, null);
+    }
+
+    @Nullable
+    public Solid getClosestSolid(Ray ray, @Nullable Vector3 hitPoint) {
         float closestDst2 = Float.POSITIVE_INFINITY;
-        final Vector3 hitPoint = new Vector3();
         Solid selected = null;
         for (Entity entity : entities) {
             if (entity instanceof Solid) {
                 final Solid solid = (Solid) entity;
-                if (solid.castRay(ray, hitPoint)) {
-                    final float dst2 = ray.origin.dst2(hitPoint);
+                if (solid.castRay(ray, tempV)) {
+                    final float dst2 = ray.origin.dst2(tempV);
                     if (dst2 < closestDst2) {
                         closestDst2 = dst2;
+                        if (hitPoint != null)
+                            hitPoint.set(tempV);
                         selected = solid;
                     }
                 }

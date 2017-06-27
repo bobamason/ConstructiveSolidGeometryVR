@@ -28,7 +28,7 @@ public class Arrow {
 
     public Arrow(ModelBuilder modelBuilder, Vector3 v, Color color) {
         modelInstance = new ModelInstance(modelBuilder.createArrow(
-                0f, 0f, 0f,
+                v.x - 0.5f, v.y - 0.5f, v.z - 0.5f,
                 v.x, v.y, v.z,
                 0.1f, 0.1f, 8,
                 GL20.GL_TRIANGLES,

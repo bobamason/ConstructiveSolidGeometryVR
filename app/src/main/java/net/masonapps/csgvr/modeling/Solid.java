@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.math.Intersector;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
@@ -34,7 +33,6 @@ public class Solid extends Entity {
     protected final Vector3 position = new Vector3();
     protected final Quaternion rotation = new Quaternion();
     private final Quaternion rotator = new Quaternion();
-    private final Matrix4 inverse = new Matrix4();
     public double tolerance = 1e-10;
     protected PolyhedronsSet polyhedronsSet;
     protected boolean isTransformUpdated = false;
@@ -74,6 +72,8 @@ public class Solid extends Entity {
         modelInstance.transform.translate(-baryCenter.x, -baryCenter.y, -baryCenter.z);
         modelInstance.transform.rotate(rotation);
         modelInstance.transform.translate(baryCenter.x + position.x, baryCenter.y + position.y, baryCenter.z + position.z);
+
+        modelInstance.calculateBoundingBox(boundingBox);
 
         isTransformUpdated = true;
     }
@@ -221,5 +221,9 @@ public class Solid extends Entity {
 
     private void invalidate() {
         isTransformUpdated = false;
+    }
+
+    public BoundingBox getBoundingBox() {
+        return boundingBox;
     }
 }

@@ -24,7 +24,7 @@ import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 
 import net.masonapps.csgvr.ui.Grid;
-import net.masonapps.csgvr.ui.TransformManipulator;
+import net.masonapps.csgvr.ui.TranslationManipulator;
 import net.masonapps.csgvr.utils.ConversionUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
@@ -50,7 +50,7 @@ class PolyhedronsTest implements ApplicationListener {
     private PolyhedronsSet polyhedronsSet;
     @Nullable
     private SubPlane focusedPlane = null;
-    private TransformManipulator transformManipulator;
+    private TranslationManipulator translationManipulator;
     private Grid grid;
 
     @Override
@@ -94,7 +94,7 @@ class PolyhedronsTest implements ApplicationListener {
         final Material material = new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
         final ModelInstance modelInstance = ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, material);
         instances.add(modelInstance);
-        transformManipulator = new TransformManipulator(modelInstance.transform);
+        translationManipulator = new TranslationManipulator();
 //        instances.add(new ModelInstance(DebugUtils.createEdgeModel(modelInstance.model, Color.BLACK)));
     }
 
@@ -123,7 +123,7 @@ class PolyhedronsTest implements ApplicationListener {
         modelBatch.render(instances, environment);
         if (grid.isRenderingEnabled())
             modelBatch.render(grid.modelInstance);
-        transformManipulator.render(modelBatch);
+        translationManipulator.render(modelBatch);
         modelBatch.end();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
@@ -143,7 +143,7 @@ class PolyhedronsTest implements ApplicationListener {
     private void update() {
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
-            transformManipulator.rayTest(ray);
+            translationManipulator.inputDown(ray);
             final Vector3D point = ConversionUtils.convertVector(ray.origin);
             final Vector3D point2 = ConversionUtils.convertVector(ray.direction).add(point);
             final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));

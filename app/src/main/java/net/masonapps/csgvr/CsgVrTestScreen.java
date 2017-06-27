@@ -25,6 +25,7 @@ import net.masonapps.csgvr.primitives.Box;
 import net.masonapps.csgvr.primitives.Cylinder;
 import net.masonapps.csgvr.ui.DaydreamCameraController;
 import net.masonapps.csgvr.ui.Grid;
+import net.masonapps.csgvr.ui.TranslationManipulator;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Euclidean3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
@@ -58,7 +59,7 @@ public class CsgVrTestScreen extends SolidModelingScreen {
     private PolyhedronsSet polyhedronsSet;
     @Nullable
     private SubPlane focusedPlane = null;
-    //    private TransformManipulator transformManipulator;
+    private TranslationManipulator translationManipulator;
     private Grid grid;
     @Nullable
     private SubPlane selectedPlane = null;
@@ -73,10 +74,19 @@ public class CsgVrTestScreen extends SolidModelingScreen {
         @Override
         public void onButtonEvent(Controller controller, DaydreamButtonEvent event) {
             if (event.button == DaydreamButtonEvent.BUTTON_TOUCHPAD) {
-                if (event.action == DaydreamButtonEvent.ACTION_DOWN && selectedSolid != null) {
-                    selectedSolid = getSolidWorld().getClosestSolid(GdxVr.input.getInputRay());
+                if (event.action == DaydreamButtonEvent.ACTION_DOWN) {
+                    if (selectedSolid != null) {
+                        if (translationManipulator.inputDown(GdxVr.input.getInputRay())) {
+                            return;
+                        }
+                    }
+                    final Solid newSolid = getSolidWorld().getClosestSolid(GdxVr.input.getInputRay());
+                    if (newSolid != selectedSolid) {
+                        selectedSolid = newSolid;
+                        translationManipulator.setSolid(selectedSolid);
+                    }
                 } else if (event.action == DaydreamButtonEvent.ACTION_UP) {
-                    selectedSolid = null;
+                    translationManipulator.inputUp();
                 }
             }
         }
@@ -125,7 +135,7 @@ public class CsgVrTestScreen extends SolidModelingScreen {
 
         final Solid solid = new Solid(polyhedronsSet);
         getWorld().add(solid);
-//        transformManipulator = new TransformManipulator(entity.transform);
+        translationManipulator = new TranslationManipulator();
 //        wireFrame = getWorld().add(new Entity(new ModelInstance(DebugUtils.createEdgeModel(solid.getModelInstance(false).model, Color.BLACK))));
 //        wireFrame.setLightingEnabled(false);
 
@@ -137,6 +147,7 @@ public class CsgVrTestScreen extends SolidModelingScreen {
                 getSolidWorld().add(new Box(1f, 1f, 1f).createSolid());
             }
         });
+        addCubeButton.setPosition(-0.5f, 0.5f, -1f);
 
         getUiContainer().addProcessor(addCubeButton);
     }
@@ -197,6 +208,7 @@ public class CsgVrTestScreen extends SolidModelingScreen {
 
         if (grid.isRenderingEnabled()) {
             modelBatch.begin(camera);
+            translationManipulator.render(modelBatch);
             modelBatch.render(grid.modelInstance, environment);
             modelBatch.end();
         }
