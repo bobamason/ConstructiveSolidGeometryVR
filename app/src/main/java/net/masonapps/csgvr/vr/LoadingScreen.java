@@ -30,7 +30,7 @@ public class LoadingScreen extends VrWorldScreen {
         setBackgroundColor(Color.BLACK);
         getVrCamera().near = 0.1f;
         final Model rect = createRect();
-        final Texture texture = new Texture("loading.png");
+        final Texture texture = new Texture("raw/loading_spinner.png");
         manageDisposable(texture);
         rect.materials.get(0).set(new BlendingAttribute(), TextureAttribute.createDiffuse(texture));
         entity = getWorld().add(new Entity(new ModelInstance(rect, 0, 0, -6)));
