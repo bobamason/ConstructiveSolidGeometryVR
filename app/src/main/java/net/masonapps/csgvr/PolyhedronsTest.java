@@ -19,6 +19,7 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
@@ -49,9 +50,13 @@ class PolyhedronsTest implements ApplicationListener {
     private DirectionalLight light;
     private PolyhedronsSet polyhedronsSet;
     @Nullable
-    private SubPlane focusedPlane = null;
+    private SubPlane focusedSubPlane = null;
+    @Nullable
+    private com.badlogic.gdx.math.Plane focusedPlane = null;
     private TranslationManipulator translationManipulator;
     private Grid grid;
+    private boolean touched = false;
+    private Vector3 hitPoint = new Vector3();
 
     @Override
     public void create() {
@@ -130,11 +135,11 @@ class PolyhedronsTest implements ApplicationListener {
 
 //        DebugUtils.renderPolygonTree(polyhedronsSet, shapeRenderer);
 
-        if (focusedPlane != null) {
+        if (focusedSubPlane != null) {
             shapeRenderer.setColor(Color.LIME);
-            renderSubPlane(focusedPlane);
+            renderSubPlane(focusedSubPlane);
             grid.setRenderingEnabled(true);
-            grid.setToPlane((Plane) focusedPlane.getHyperplane());
+            grid.setToPlane((Plane) focusedSubPlane.getHyperplane());
         } else {
             grid.setRenderingEnabled(false);
         }
@@ -143,17 +148,34 @@ class PolyhedronsTest implements ApplicationListener {
     private void update() {
         if (Gdx.input.isTouched()) {
             final Ray ray = camera.getPickRay(Gdx.input.getX(), Gdx.input.getY());
-            translationManipulator.inputDown(ray);
-            final Vector3D point = ConversionUtils.convertVector(ray.origin);
-            final Vector3D point2 = ConversionUtils.convertVector(ray.direction).add(point);
-            final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
-            if (subPlane != null) {
-                focusedPlane = subPlane;
+            if (!touched) {
+                touched = true;
+//            translationManipulator.inputDown(ray);
+                final Vector3D point = ConversionUtils.convertVector(ray.origin);
+                final Vector3D point2 = ConversionUtils.convertVector(ray.direction).add(point);
+                final SubPlane subPlane = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
+                if (subPlane != null) {
+                    focusedSubPlane = subPlane;
+                    focusedPlane = ConversionUtils.convertPlane((Plane) focusedSubPlane.getHyperplane());
+                }
             }
-//            if (focusedPlane != null && doExtrude) {
-//                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedPlane, 0.2f).getPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
+
+            if (focusedPlane != null) {
+                if (Intersector.intersectRayPlane(ray, focusedPlane, hitPoint)) {
+
+                }
+            }
+//            if (focusedSubPlane != null && doExtrude) {
+//                instances.add(ConversionUtils.polyhedronsSetToModelInstance(new Extrusion(focusedSubPlane, 0.2f).getPolyhedronsSet(), new Material(ColorAttribute.createDiffuse(Color.SKY))));
 //                doExtrude = false;
 //            }
+        } else {
+            if (touched) {
+                if (focusedSubPlane != null) {
+
+                }
+                touched = false;
+            }
         }
     }
 
