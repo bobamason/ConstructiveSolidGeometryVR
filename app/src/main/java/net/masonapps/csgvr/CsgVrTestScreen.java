@@ -114,11 +114,12 @@ public class CsgVrTestScreen extends SolidModelingScreen {
         getVrCamera().position.set(0, 1f, 4f);
 
         grid = Grid.newInstance(5f);
+        grid.setToPlane(new Plane(new Vector3D(0, 1, 0), 1e-10));
 
         polyhedronsSet = new Box(2, 0.25f, 2).createSolid().getPolyhedronsSet();
         for (int i = 1; i < 3; i++) {
             final Box box = new Box(2, 0.25f, 2);
-            box.transform.rotate(Vector3.Y, 30 * i);
+            box.rotateY(30 * i);
             polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, box.createSolid().getPolyhedronsSet());
         }
 
@@ -128,7 +129,7 @@ public class CsgVrTestScreen extends SolidModelingScreen {
         final Cylinder hole = new Cylinder(0.25f, 1f);
         polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(polyhedronsSet, hole.createSolid().getPolyhedronsSet());
         final Cylinder rounded = new Cylinder((float) (Math.sqrt(2) * 0.95), 0.5f);
-        rounded.divisions = 24;
+        rounded.setDivisions(24);
         polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().intersection(polyhedronsSet, rounded.createSolid().getPolyhedronsSet());
 
 //        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));

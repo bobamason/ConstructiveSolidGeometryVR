@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
@@ -16,7 +17,6 @@ import net.masonapps.csgvr.utils.ConversionUtils;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.PolyhedronsSet;
-import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.masonapps.libgdxgooglevr.GdxVr;
@@ -40,6 +40,7 @@ public class Solid extends Entity {
     private Ray tempRay = new Ray();
     private Vector3 lastPosition = new Vector3();
     private Quaternion lastRotation = new Quaternion();
+    private Matrix4 inverseTransform = new Matrix4();
 
     public Solid(PolyhedronsSet polyhedronsSet) {
         super(ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, new Material(ColorAttribute.createDiffuse(Color.SKY))));
@@ -57,21 +58,13 @@ public class Solid extends Entity {
 
     protected void updateTransform() {
         if (isTransformUpdated) return;
-
-        polyhedronsSet.translate(new Vector3D(position.x - lastPosition.x, position.y - lastPosition.y, position.z - lastPosition.z));
-
-        final Quaternion q = new Quaternion(lastRotation).conjugate().mul(rotation).nor();
-        if (!q.isIdentity(1e-5f)) {
-            polyhedronsSet.rotate((Vector3D) polyhedronsSet.getBarycenter(), new Rotation(q.w, q.x, q.y, q.z, false));
-            lastPosition.set(position);
-            lastRotation.set(rotation);
-        }
-
         final Vector3 baryCenter = ConversionUtils.convertVector((Vector3D) polyhedronsSet.getBarycenter());
         modelInstance.transform.idt();
         modelInstance.transform.translate(-baryCenter.x, -baryCenter.y, -baryCenter.z);
         modelInstance.transform.rotate(rotation);
         modelInstance.transform.translate(baryCenter.x + position.x, baryCenter.y + position.y, baryCenter.z + position.z);
+
+        inverseTransform.set(modelInstance.transform).inv();
 
         modelInstance.calculateBoundingBox(boundingBox);
 
@@ -82,13 +75,16 @@ public class Solid extends Entity {
         updateTransform();
         if (polyhedronsSet != null) {
             if (Intersector.intersectRayBoundsFast(ray, boundingBox)) {
-                tempRay.set(GdxVr.input.getInputRay());
+                tempRay.set(GdxVr.input.getInputRay()).mul(inverseTransform);
                 final Vector3D point = ConversionUtils.convertVector(tempRay.origin);
                 final Vector3D point2 = ConversionUtils.convertVector(tempRay.direction).add(point);
                 final SubPlane plane3D = (SubPlane) polyhedronsSet.firstIntersection(point, new Line(point, point2, polyhedronsSet.getTolerance()));
                 if (plane3D != null) {
                     final com.badlogic.gdx.math.Plane plane = ConversionUtils.convertPlane((Plane) plane3D.getHyperplane());
-                    return Intersector.intersectRayPlane(ray, plane, hitPoint);
+                    if (Intersector.intersectRayPlane(tempRay, plane, hitPoint)) {
+                        hitPoint.mul(modelInstance.transform);
+                        return true;
+                    }
                 }
             }
         }

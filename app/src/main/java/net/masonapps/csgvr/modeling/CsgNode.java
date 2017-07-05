@@ -11,7 +11,7 @@ import net.masonapps.csgvr.primitives.Primitive;
 
 public class CsgNode {
 
-    boolean isLeaf;
+    private boolean isLeaf;
     @Nullable
     private CsgNode parent = null;
     @Nullable
@@ -34,7 +34,7 @@ public class CsgNode {
     public CsgNode(@Nullable CsgNode parent, @NonNull Primitive primitive) {
         this.parent = parent;
         this.primitive = primitive;
-        isLeaf = false;
+        isLeaf = true;
     }
 
     public Operator getOperator() {
@@ -47,6 +47,20 @@ public class CsgNode {
 
     public CsgNode getRight() {
         return right;
+    }
+
+    @Nullable
+    public CsgNode getParent() {
+        return parent;
+    }
+
+    @Nullable
+    public Primitive getPrimitive() {
+        return primitive;
+    }
+
+    public boolean isLeaf() {
+        return isLeaf;
     }
 
     public enum Operator {
