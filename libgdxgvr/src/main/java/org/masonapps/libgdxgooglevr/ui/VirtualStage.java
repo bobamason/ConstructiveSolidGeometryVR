@@ -1,5 +1,7 @@
 package org.masonapps.libgdxgooglevr.ui;
 
+import android.support.annotation.Nullable;
+
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Interpolation;
@@ -19,6 +21,7 @@ import com.badlogic.gdx.utils.Pools;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 import org.masonapps.libgdxgooglevr.input.VrInputProcessor;
+import org.masonapps.libgdxgooglevr.math.PlaneUtils;
 
 
 /**
@@ -27,23 +30,16 @@ import org.masonapps.libgdxgooglevr.input.VrInputProcessor;
 
 public class VirtualStage extends Stage implements VrInputProcessor {
 
-    private static final Vector3 dir = new Vector3();
-    private static final Vector3 tmp = new Vector3();
-    private static final Vector3 tmp2 = new Vector3();
-    private static final Vector2 tmpV2 = new Vector2();
-    private static final Matrix4 tmpM = new Matrix4();
-    private static float pixelSizeWorld = 1f / 500f;
+    protected static float pixelSizeWorld = 1f / 500f;
     // call invalidate() after making changes for them to take effect
-    public final Vector3 position = new Vector3();
-    public final Quaternion rotation = new Quaternion();
-    public final Vector2 scale = new Vector2(1f, 1f);
-    private final Vector3 xaxis = new Vector3();
-    private final Vector3 yaxis = new Vector3();
-    private final Quaternion rotator = new Quaternion();
-    private final Matrix4 transform = new Matrix4();
+    protected final Vector3 position = new Vector3();
+    protected final Quaternion rotation = new Quaternion();
+    protected final Vector2 scale = new Vector2(1f, 1f);
+    protected final Matrix4 transform = new Matrix4();
     private final Vector3 translation = new Vector3();
     public Rectangle bounds = new Rectangle();
-    private Plane plane = new Plane();
+    protected Plane plane = new Plane(Vector3.Z, 0);
+    protected boolean updated = false;
     private boolean visible = true;
     private int mouseScreenX;
     private int mouseScreenY;
@@ -53,21 +49,22 @@ public class VirtualStage extends Stage implements VrInputProcessor {
     private Vector3 hitPoint3D = new Vector3();
     private boolean touchable = true;
     private float radius;
-    private boolean updated = false;
     private Matrix4 batchTransform = new Matrix4();
-    private float activationMovement = 0.125f;
+    private Matrix4 inverseTransform = new Matrix4();
+    private float activationMovement = 0.025f;
     private float activation = 0f;
     private float animationDuration = 0.25f;
     private Interpolation interpolation = new Interpolation.Pow(2);
+    private float alpha = 1f;
+    private boolean activationEnabled = false;
 
     public VirtualStage(Batch batch, int virtualPixelWidth, int virtualPixelHeight) {
         super(new ScreenViewport(), batch);
-        getViewport().update(virtualPixelWidth, virtualPixelHeight, false);
-        bounds.set(0, 0, virtualPixelWidth, virtualPixelHeight);
+        setSize(virtualPixelWidth, virtualPixelHeight);
     }
 
     public VirtualStage(Batch batch, float width, float height, Matrix4 transform) {
-        this(batch, (int) (pixelSizeWorld * width), (int) (pixelSizeWorld * height));
+        this(batch, (int) (width / pixelSizeWorld), (int) (height / pixelSizeWorld));
         if (transform != null) {
             this.transform.set(transform);
             invalidate();
@@ -141,19 +138,26 @@ public class VirtualStage extends Stage implements VrInputProcessor {
     }
 
     public void rotateX(float angle) {
+        final Quaternion rotator = Pools.obtain(Quaternion.class);
         rotator.set(Vector3.X, angle);
         rotation.mul(rotator);
+        Pools.free(rotator);
         invalidate();
     }
 
     public void rotateY(float angle) {
+        final Quaternion rotator = Pools.obtain(Quaternion.class);
         rotator.set(Vector3.Y, angle);
         rotation.mul(rotator);
+        Pools.free(rotator);
         invalidate();
     }
 
     public void rotateZ(float angle) {
+        final Quaternion rotator = Pools.obtain(Quaternion.class);
         rotator.set(Vector3.Z, angle);
+        rotation.mul(rotator);
+        Pools.free(rotator);
         invalidate();
     }
 
@@ -163,15 +167,21 @@ public class VirtualStage extends Stage implements VrInputProcessor {
     }
 
     public void setRotation(Vector3 dir, Vector3 up) {
+        final Vector3 tmp = Pools.obtain(Vector3.class);
+        final Vector3 tmp2 = Pools.obtain(Vector3.class);
         tmp.set(up).crs(dir).nor();
         tmp2.set(dir).crs(tmp).nor();
         rotation.setFromAxes(tmp.x, tmp2.x, dir.x, tmp.y, tmp2.y, dir.y, tmp.z, tmp2.z, dir.z);
         invalidate();
+        Pools.free(tmp);
+        Pools.free(tmp2);
     }
 
     public void lookAt(Vector3 position, Vector3 up) {
+        final Vector3 dir = Pools.obtain(Vector3.class);
         dir.set(position).sub(this.position).nor();
         setRotation(dir, up);
+        Pools.free(dir);
     }
 
     public Quaternion getRotation() {
@@ -250,20 +260,25 @@ public class VirtualStage extends Stage implements VrInputProcessor {
     }
 
     public void recalculateTransform() {
+        final Vector3 tmp = Pools.obtain(Vector3.class);
         final Vector3 normal = tmp.set(Vector3.Z).mul(rotation).nor();
-        translation.set(normal).scl(activationMovement).add(position).lerp(position, interpolation.apply(1f - activation));
-        plane.set(translation, normal);
+        if (activationEnabled)
+            translation.set(normal).scl(activationMovement).add(position).lerp(position, interpolation.apply(1f - activation));
+        else
+            translation.set(position);
         bounds.set(0, 0, getViewport().getCamera().viewportWidth * pixelSizeWorld * scale.x, getViewport().getCamera().viewportHeight * pixelSizeWorld * scale.y);
         radius = (float) Math.sqrt(bounds.width * bounds.width + bounds.height * bounds.height);
         transform.idt().translate(translation).rotate(rotation).translate(-bounds.getWidth() * 0.5f, -bounds.getHeight() * 0.5f, 0).scale(pixelSizeWorld * scale.x, pixelSizeWorld * scale.y, 1f);
+        inverseTransform.set(transform).inv();
         updated = true;
+        Pools.free(tmp);
     }
 
     public void draw(Camera camera) {
         draw(camera, null);
     }
 
-    public void draw(Camera camera, Matrix4 parentTransform) {
+    public void draw(Camera camera, @Nullable Matrix4 parentTransform) {
         if (!visible) return;
         if (!updated) recalculateTransform();
         Batch batch = this.getBatch();
@@ -274,19 +289,21 @@ public class VirtualStage extends Stage implements VrInputProcessor {
         if (parentTransform != null)
             batchTransform.mulLeft(parentTransform);
         batch.setTransformMatrix(batchTransform);
-        getRoot().draw(batch, 1);
+        getRoot().draw(batch, alpha);
         batch.end();
     }
 
     @Override
     public void act(float delta) {
         super.act(delta);
-        if (isCursorOver && activation < 1f) {
-            activation += delta / animationDuration;
-            invalidate();
-        } else if (!isCursorOver && activation > 0f) {
-            activation -= delta / animationDuration;
-            invalidate();
+        if (activationEnabled) {
+            if (isCursorOver && activation < 1f) {
+                activation += delta / animationDuration;
+                invalidate();
+            } else if (!isCursorOver && activation > 0f) {
+                activation -= delta / animationDuration;
+                invalidate();
+            }
         }
         mouseOverActor = fireEnterAndExit(mouseOverActor, mouseScreenX, mouseScreenY, -1);
     }
@@ -302,28 +319,30 @@ public class VirtualStage extends Stage implements VrInputProcessor {
 
     @Override
     public boolean performRayTest(Ray ray) {
+        isCursorOver = false;
         if (!visible | !touchable) return false;
         if (!updated) recalculateTransform();
-        transform.getTranslation(tmp);
-        if (!Intersector.intersectRaySphere(ray, tmp, radius, null))
-            return false;
+        final Ray tmpRay = Pools.obtain(Ray.class);
+        tmpRay.set(ray).mul(inverseTransform);
+        final Vector2 tmp = Pools.obtain(Vector2.class);
+        final Vector2 center = Pools.obtain(Vector2.class);
         if (Intersector.intersectRayPlane(ray, plane, hitPoint3D)) {
-            tmp2.set(hitPoint3D).sub(tmp);
-            xaxis.set(Vector3.Y).crs(plane.normal).nor();
-            yaxis.set(plane.normal).crs(xaxis).nor();
-            tmpV2.set(xaxis.dot(tmp2), yaxis.dot(tmp2));
-            if (bounds.contains(tmpV2)) {
-                hitPoint2DPixels.set(tmpV2).scl(1f / (pixelSizeWorld * scale.x), 1f / (pixelSizeWorld * scale.y));
+            PlaneUtils.toSubSpace(plane, hitPoint3D, tmp);
+            tmp.sub(bounds.getCenter(center));
+            if (bounds.contains(tmp)) {
+                hitPoint2DPixels.set(tmp).scl(1f / (pixelSizeWorld * scale.x), 1f / (pixelSizeWorld * scale.y));
                 isCursorOver = true;
-                return true;
             }
         }
-        isCursorOver = false;
-        return false;
+        Pools.free(tmpRay);
+        Pools.free(tmp);
+        Pools.free(center);
+        return isCursorOver;
     }
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        final Vector2 tmpV2 = Pools.obtain(Vector2.class);
 
         tmpV2.set(screenX, screenY);
 
@@ -344,6 +363,7 @@ public class VirtualStage extends Stage implements VrInputProcessor {
 
         boolean handled = event.isHandled();
         Pools.free(event);
+        Pools.free(tmpV2);
         return handled;
     }
 
@@ -366,15 +386,14 @@ public class VirtualStage extends Stage implements VrInputProcessor {
     public boolean mouseMoved(int screenX, int screenY) {
         mouseScreenX = screenX;
         mouseScreenY = screenY;
-        tmpV2.set(screenX, screenY);
 
         InputEvent event = Pools.obtain(InputEvent.class);
         event.setStage(this);
         event.setType(InputEvent.Type.mouseMoved);
-        event.setStageX(tmpV2.x);
-        event.setStageY(tmpV2.y);
+        event.setStageX(screenX);
+        event.setStageY(screenY);
 
-        Actor target = hit(tmpV2.x, tmpV2.y, true);
+        Actor target = hit(screenX, screenY, true);
         if (target == null) target = getRoot();
 
         target.fire(event);
@@ -385,6 +404,7 @@ public class VirtualStage extends Stage implements VrInputProcessor {
 
     private Actor fireEnterAndExit(Actor overLast, int screenX, int screenY, int pointer) {
         // Find the actor under the point.
+        final Vector2 tmpV2 = Pools.obtain(Vector2.class);
         tmpV2.set(screenX, screenY);
         Actor over = hit(tmpV2.x, tmpV2.y, true);
         if (over == overLast) return overLast;
@@ -413,6 +433,7 @@ public class VirtualStage extends Stage implements VrInputProcessor {
             over.fire(event);
             Pools.free(event);
         }
+        Pools.free(tmpV2);
         return over;
     }
 
@@ -420,6 +441,15 @@ public class VirtualStage extends Stage implements VrInputProcessor {
     public void calculateScissors(Rectangle localRect, Rectangle scissorRect) {
         super.calculateScissors(localRect, scissorRect);
         scissorRect.set(Float.MIN_VALUE, Float.MIN_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
+        scissorRect.set(0, 0, 0, 0);
+    }
+
+    public boolean isActivationEnabled() {
+        return activationEnabled;
+    }
+
+    public void setActivationEnabled(boolean activationEnabled) {
+        this.activationEnabled = activationEnabled;
     }
 
     public boolean isTouchable() {
@@ -459,6 +489,11 @@ public class VirtualStage extends Stage implements VrInputProcessor {
         return getHeight() * pixelSizeWorld * getScaleY();
     }
 
+    public void setSize(int virtualPixelWidth, int virtualPixelHeight) {
+        getViewport().update(virtualPixelWidth, virtualPixelHeight, false);
+        bounds.set(0, 0, virtualPixelWidth * pixelSizeWorld, virtualPixelHeight * pixelSizeWorld);
+    }
+
     public boolean isVisible() {
         return visible;
     }
@@ -467,12 +502,21 @@ public class VirtualStage extends Stage implements VrInputProcessor {
         this.visible = visible;
     }
 
+    public float getAlpha() {
+        return alpha;
+    }
+
+    public void setAlpha(float alpha) {
+        this.alpha = alpha;
+    }
+
     public void setAnimationDuration(float animationDuration) {
         this.animationDuration = animationDuration;
     }
 
     public void setActivationMovement(float activationMovement) {
         this.activationMovement = activationMovement;
+        setActivationEnabled(activationMovement != 0);
     }
 
     public void setInterpolation(Interpolation interpolation) {

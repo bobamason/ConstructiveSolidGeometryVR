@@ -17,9 +17,13 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.google.vr.sdk.base.Eye;
 import com.google.vr.sdk.base.HeadTransform;
+import com.google.vr.sdk.base.Viewport;
 import com.google.vr.sdk.controller.Controller;
 
 import org.masonapps.libgdxgooglevr.GdxVr;
+import org.masonapps.libgdxgooglevr.input.DaydreamButtonEvent;
+import org.masonapps.libgdxgooglevr.input.DaydreamControllerInputListener;
+import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
 import org.masonapps.libgdxgooglevr.input.VrCursor;
 import org.masonapps.libgdxgooglevr.input.VrInputProcessor;
 import org.masonapps.libgdxgooglevr.vr.VrApplicationAdapter;
@@ -28,7 +32,7 @@ import org.masonapps.libgdxgooglevr.vr.VrApplicationAdapter;
  * Created by Bob on 12/22/2016.
  */
 
-public class VrGame extends VrApplicationAdapter {
+public class VrGame extends VrApplicationAdapter implements DaydreamControllerInputListener {
     private static final String CONTROLLER_FILENAME = "ddcontroller.g3db";
     private final Vector3 controllerScale = new Vector3(10f, 10f, 10f);
     protected VrScreen screen;
@@ -63,11 +67,13 @@ public class VrGame extends VrApplicationAdapter {
     @Override
     public void pause() {
         if (screen != null) screen.pause();
+        GdxVr.input.removeDaydreamControllerListener(this);
     }
 
     @Override
     public void resume() {
         if (screen != null) screen.resume();
+        GdxVr.input.addDaydreamControllerListener(this);
     }
 
     @Override
@@ -79,6 +85,16 @@ public class VrGame extends VrApplicationAdapter {
                 loading = false;
             }
         }
+        final VrInputProcessor vrInputProcessor = GdxVr.input.getVrInputProcessor();
+        if (vrInputProcessor != null && vrInputProcessor.isCursorOver()) {
+            cursor.position.set(vrInputProcessor.getHitPoint3D());
+            cursor.lookAtTarget(ray.origin, Vector3.Y);
+            cursor.setVisible(true);
+        } else {
+            cursor.position.set(ray.direction.x + ray.origin.x, ray.direction.y + ray.origin.y, ray.direction.z + ray.origin.z);
+            cursor.lookAtTarget(ray.origin, Vector3.Y);
+            cursor.setVisible(!GdxVr.input.isControllerConnected());
+        }
         if (screen != null) screen.update();
     }
 
@@ -86,7 +102,7 @@ public class VrGame extends VrApplicationAdapter {
     protected void doneLoading(AssetManager assets) {
         if (controllerInstance == null)
             controllerInstance = new ModelInstance(assets.get(CONTROLLER_FILENAME, Model.class));
-        screen.doneLoading(assets);
+        if (screen != null) screen.doneLoading(assets);
     }
 
     @Override
@@ -119,6 +135,7 @@ public class VrGame extends VrApplicationAdapter {
         }
         cursor.render(camera);
         Gdx.gl.glDisable(GL20.GL_BLEND);
+        if (screen != null) screen.renderAfterCursor(camera);
     }
 
     @Override
@@ -134,28 +151,34 @@ public class VrGame extends VrApplicationAdapter {
     }
 
     @Override
+    public void onFinishFrame(Viewport viewport) {
+        super.onFinishFrame(viewport);
+        if (screen != null) screen.onFinishFrame(viewport);
+    }
+
+    @Override
     public void onDaydreamControllerUpdate(Controller controller, int connectionState) {
-        super.onDaydreamControllerUpdate(controller, connectionState);
         if (GdxVr.input.isControllerConnected()) {
             ray.set(GdxVr.input.getInputRay());
             if (controllerInstance != null) {
                 controllerInstance.transform.set(GdxVr.input.getControllerPosition(), GdxVr.input.getControllerOrientation(), controllerScale);
             }
-            final VrInputProcessor vrInputProcessor = GdxVr.input.getVrInputProcessor();
-            if (vrInputProcessor != null && vrInputProcessor.isCursorOver()) {
-                cursor.position.set(vrInputProcessor.getHitPoint3D());
-                cursor.lookAtTarget(ray.origin, Vector3.Y);
-//                floatAction.restart();
-                cursor.setVisible(true);
-            } else {
-                cursor.position.set(ray.direction.x + ray.origin.x, ray.direction.y + ray.origin.y, ray.direction.z + ray.origin.z);
-                cursor.lookAtTarget(ray.origin, Vector3.Y);
-//                floatAction.setReverse(true);
-//                floatAction.restart();
-                cursor.setVisible(false);
-            }
         }
-        if (screen != null) screen.onDaydreamControllerUpdate(controller, connectionState);
+    }
+
+    @Override
+    public void onControllerButtonEvent(Controller controller, DaydreamButtonEvent event) {
+
+    }
+
+    @Override
+    public void onControllerTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
+
+    }
+
+    @Override
+    public void onControllerConnectionStateChange(int connectionState) {
+
     }
 
     @Override
@@ -243,5 +266,9 @@ public class VrGame extends VrApplicationAdapter {
 
     public void setInputVisible(boolean visible) {
         isInputVisible = visible;
+    }
+
+    public VrCursor getCursor() {
+        return cursor;
     }
 }

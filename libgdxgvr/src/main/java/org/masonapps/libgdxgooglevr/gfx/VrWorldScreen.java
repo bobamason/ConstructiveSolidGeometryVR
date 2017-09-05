@@ -4,7 +4,6 @@ import android.support.annotation.CallSuper;
 import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.assets.AssetDescriptor;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -18,11 +17,17 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.google.vr.sdk.base.HeadTransform;
 
+import org.masonapps.libgdxgooglevr.input.DaydreamControllerInputListener;
+
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 /**
  * Created by Bob on 10/9/2016.
  */
 
-public abstract class VrWorldScreen extends VrScreen {
+public abstract class VrWorldScreen extends VrScreen implements DaydreamControllerInputListener {
+    private final Queue<Runnable> tasks = new LinkedBlockingQueue<>();
     protected Environment environment;
     protected World world;
     private Array<Disposable> disposables = new Array<>();
@@ -63,7 +68,14 @@ public abstract class VrWorldScreen extends VrScreen {
     @Override
     @CallSuper
     public void update() {
+        performQueuedTasks();
         world.update();
+    }
+
+    protected void performQueuedTasks() {
+        while (!tasks.isEmpty()) {
+            tasks.poll().run();
+        }
     }
 
     @Override
@@ -82,13 +94,10 @@ public abstract class VrWorldScreen extends VrScreen {
     public void resume() {
     }
 
-    public void loadAsset(String filename, Class<?> type) {
-        game.loadAsset(filename, type);
+    public void runOnGLThread(Runnable runnable) {
+        tasks.offer(runnable);
     }
 
-    public void loadAsset(AssetDescriptor desc) {
-        game.loadAsset(desc);
-    }
 
     @Override
     @CallSuper

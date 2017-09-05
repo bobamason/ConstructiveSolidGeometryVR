@@ -6,6 +6,7 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
@@ -20,10 +21,13 @@ import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 
+import net.masonapps.csgvr.csg.CSG;
+import net.masonapps.csgvr.csg.CsgTriangle;
 import net.masonapps.csgvr.ui.Grid;
 import net.masonapps.csgvr.ui.TranslationManipulator;
 import net.masonapps.csgvr.utils.ConversionUtils;
@@ -35,6 +39,8 @@ import org.apache.commons.math3.geometry.euclidean.threed.SubPlane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+
+import java.util.List;
 
 /**
  * Created by Bob on 5/19/2017.
@@ -101,6 +107,21 @@ class PolyhedronsTest implements ApplicationListener {
         instances.add(modelInstance);
         translationManipulator = new TranslationManipulator();
 //        instances.add(new ModelInstance(DebugUtils.createEdgeModel(modelInstance.model, Color.BLACK)));
+        testCSG();
+    }
+
+    private void testCSG() {
+        ModelBuilder mb = new ModelBuilder();
+        final Model b1 = mb.createBox(1f, 1f, 1f, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        final Model b2 = mb.createBox(0.5f, 0.5f, 0.5f, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        final List<CsgTriangle> aTriangles = CSG.trianglesFromMesh(b1.meshes.get(0), new Matrix4());
+        final List<CsgTriangle> bTriangles = CSG.trianglesFromMesh(b2.meshes.get(0), new Matrix4().setToTranslation(0.5f, 0.5f, 0.5f));
+        final Mesh mesh = CSG.toMesh(CSG.union(aTriangles, bTriangles));
+        mb.begin();
+        mb.part("u", mesh, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.SKY)));
+        final Model model = mb.end();
+        final ModelInstance csgTestInstance = new ModelInstance(model, -1, 0, -2);
+        instances.add(csgTestInstance);
     }
 
     @Override

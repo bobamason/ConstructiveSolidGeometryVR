@@ -21,6 +21,14 @@ public class TableVR extends VirtualStage {
         table = new Table(skin);
         table.setFillParent(true);
         addActor(table);
+        setActivationMovement(0);
+    }
+
+    @Override
+    public void setSize(int virtualPixelWidth, int virtualPixelHeight) {
+        super.setSize(virtualPixelWidth, virtualPixelHeight);
+        if (table != null)
+            table.invalidate();
     }
 
     public Table getTable() {
