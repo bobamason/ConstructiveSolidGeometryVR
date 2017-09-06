@@ -1,5 +1,7 @@
 package net.masonapps.csgvr.primitives;
 
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
 import net.masonapps.csgvr.modeling.Solid;
@@ -21,9 +23,15 @@ public class Icosphere extends Primitive {
     List<int[]> facets = new ArrayList<>();
     private float radius = 1f;
     private int subdivisions = 3;
+    private Matrix4 transform = new Matrix4();
 
     public Icosphere(float radius) {
         this.radius = radius;
+    }
+
+    @Override
+    protected ModelInstance createModelInstance() {
+        return null;
     }
 
     @Override

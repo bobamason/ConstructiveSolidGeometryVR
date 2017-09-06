@@ -10,11 +10,14 @@ import com.badlogic.gdx.graphics.g3d.environment.BaseLight;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.google.vr.sdk.controller.Controller;
 
 import org.masonapps.libgdxgooglevr.GdxVr;
 import org.masonapps.libgdxgooglevr.gfx.VrGame;
 import org.masonapps.libgdxgooglevr.gfx.VrWorldScreen;
 import org.masonapps.libgdxgooglevr.gfx.World;
+import org.masonapps.libgdxgooglevr.input.DaydreamButtonEvent;
+import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
 import org.masonapps.libgdxgooglevr.input.VrUiContainer;
 
 /**
@@ -75,20 +78,30 @@ public class SolidModelingScreen extends VrWorldScreen {
     }
 
     @Override
-    public void show() {
-
-    }
-
-    @Override
-    public void hide() {
-
-    }
-
-    @Override
     public void resume() {
     }
 
     public VrUiContainer getUiContainer() {
         return uiContainer;
+    }
+
+    @Override
+    public void onDaydreamControllerUpdate(Controller controller, int connectionState) {
+
+    }
+
+    @Override
+    public void onControllerButtonEvent(Controller controller, DaydreamButtonEvent event) {
+
+    }
+
+    @Override
+    public void onControllerTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
+
+    }
+
+    @Override
+    public void onControllerConnectionStateChange(int connectionState) {
+
     }
 }

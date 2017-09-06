@@ -23,34 +23,54 @@ public class DaydreamCameraController implements DaydreamControllerInputListener
         this.camera = camera;
     }
 
+//    @Override
+//    public void onConnectionStateChange(int connectionState) {
+//
+//    }
+//
+//    @Override
+//    public void onButtonEvent(Controller controller, DaydreamButtonEvent event) {
+//
+//    }
+//
+//    @Override
+//    public void onTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
+//        switch (event.action) {
+//            case DaydreamTouchEvent.ACTION_DOWN:
+//                lastX = event.x;
+//                lastY = event.y;
+//                break;
+//            case DaydreamTouchEvent.ACTION_MOVE:
+//                final float deltaX = (event.x - lastX);
+//                final float deltaY = (event.y - lastY);
+//                lastX = event.x;
+//                lastY = event.y;
+//                tempV.set(camera.direction).crs(camera.up).y = 0f;
+//                camera.rotateAround(target, tempV.nor(), deltaY * rotateRate);
+//                camera.rotateAround(target, Vector3.Y, deltaX * -rotateRate);
+//                break;
+//            default:
+//                break;
+//        }
+//    }
+
     @Override
-    public void onConnectionStateChange(int connectionState) {
+    public void onDaydreamControllerUpdate(Controller controller, int connectionState) {
+        
+    }
+
+    @Override
+    public void onControllerButtonEvent(Controller controller, DaydreamButtonEvent event) {
 
     }
 
     @Override
-    public void onButtonEvent(Controller controller, DaydreamButtonEvent event) {
+    public void onControllerTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
 
     }
 
     @Override
-    public void onTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
-        switch (event.action) {
-            case DaydreamTouchEvent.ACTION_DOWN:
-                lastX = event.x;
-                lastY = event.y;
-                break;
-            case DaydreamTouchEvent.ACTION_MOVE:
-                final float deltaX = (event.x - lastX);
-                final float deltaY = (event.y - lastY);
-                lastX = event.x;
-                lastY = event.y;
-                tempV.set(camera.direction).crs(camera.up).y = 0f;
-                camera.rotateAround(target, tempV.nor(), deltaY * rotateRate);
-                camera.rotateAround(target, Vector3.Y, deltaX * -rotateRate);
-                break;
-            default:
-                break;
-        }
+    public void onControllerConnectionStateChange(int connectionState) {
+
     }
 }

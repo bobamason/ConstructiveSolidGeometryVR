@@ -67,34 +67,54 @@ public class CsgVrTestScreen extends SolidModelingScreen {
     private Solid selectedSolid = null;
     private DaydreamControllerInputListener listener = new DaydreamControllerInputListener() {
         @Override
-        public void onConnectionStateChange(int connectionState) {
+        public void onDaydreamControllerUpdate(Controller controller, int connectionState) {
+            
+        }
+
+        @Override
+        public void onControllerButtonEvent(Controller controller, DaydreamButtonEvent event) {
 
         }
 
         @Override
-        public void onButtonEvent(Controller controller, DaydreamButtonEvent event) {
-            if (event.button == DaydreamButtonEvent.BUTTON_TOUCHPAD) {
-                if (event.action == DaydreamButtonEvent.ACTION_DOWN) {
-                    if (selectedSolid != null) {
-                        if (translationManipulator.inputDown(GdxVr.input.getInputRay())) {
-                            return;
-                        }
-                    }
-                    final Solid newSolid = getSolidWorld().getClosestSolid(GdxVr.input.getInputRay());
-                    if (newSolid != selectedSolid) {
-                        selectedSolid = newSolid;
-                        translationManipulator.setSolid(selectedSolid);
-                    }
-                } else if (event.action == DaydreamButtonEvent.ACTION_UP) {
-                    translationManipulator.inputUp();
-                }
-            }
+        public void onControllerTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
+
         }
 
         @Override
-        public void onTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
+        public void onControllerConnectionStateChange(int connectionState) {
 
         }
+
+//        @Override
+//        public void onConnectionStateChange(int connectionState) {
+//
+//        }
+//
+//        @Override
+//        public void onButtonEvent(Controller controller, DaydreamButtonEvent event) {
+//            if (event.button == DaydreamButtonEvent.BUTTON_TOUCHPAD) {
+//                if (event.action == DaydreamButtonEvent.ACTION_DOWN) {
+//                    if (selectedSolid != null) {
+//                        if (translationManipulator.inputDown(GdxVr.input.getInputRay())) {
+//                            return;
+//                        }
+//                    }
+//                    final Solid newSolid = getSolidWorld().getClosestSolid(GdxVr.input.getInputRay());
+//                    if (newSolid != selectedSolid) {
+//                        selectedSolid = newSolid;
+//                        translationManipulator.setSolid(selectedSolid);
+//                    }
+//                } else if (event.action == DaydreamButtonEvent.ACTION_UP) {
+//                    translationManipulator.inputUp();
+//                }
+//            }
+//        }
+//
+//        @Override
+//        public void onTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
+//
+//        }
     };
 
     public CsgVrTestScreen(SolidModelingVrGame game) {
@@ -160,12 +180,14 @@ public class CsgVrTestScreen extends SolidModelingScreen {
     @Override
     public void show() {
 //        GdxVr.input.getDaydreamControllerHandler().addListener(cameraController);
+        super.show();
         GdxVr.input.getDaydreamControllerHandler().addListener(listener);
     }
 
     @Override
     public void hide() {
 //        GdxVr.input.getDaydreamControllerHandler().removeListener(cameraController);
+        super.hide();
         GdxVr.input.getDaydreamControllerHandler().removeListener(listener);
     }
 

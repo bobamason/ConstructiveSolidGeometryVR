@@ -215,7 +215,9 @@ public class Solid extends Entity {
         invalidate();
     }
 
-    private void invalidate() {
+    @Override
+    public void invalidate() {
+        super.invalidate();
         isTransformUpdated = false;
     }
 

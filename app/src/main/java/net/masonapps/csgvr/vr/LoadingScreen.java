@@ -10,12 +10,14 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.Vector3;
+import com.google.vr.sdk.controller.Controller;
 
 import org.masonapps.libgdxgooglevr.GdxVr;
 import org.masonapps.libgdxgooglevr.gfx.Entity;
 import org.masonapps.libgdxgooglevr.gfx.VrGame;
 import org.masonapps.libgdxgooglevr.gfx.VrWorldScreen;
+import org.masonapps.libgdxgooglevr.input.DaydreamButtonEvent;
+import org.masonapps.libgdxgooglevr.input.DaydreamTouchEvent;
 
 /**
  * Created by Bob on 12/28/2016.
@@ -61,17 +63,19 @@ public class LoadingScreen extends VrWorldScreen {
 
     @Override
     public void show() {
+        super.show();
     }
 
     @Override
     public void hide() {
+        super.hide();
         dispose();
     }
 
     @Override
     public void update() {
         super.update();
-        entity.transform.rotate(Vector3.Z, GdxVr.graphics.getDeltaTime() * SPEED);
+        entity.rotateZ(GdxVr.graphics.getDeltaTime() * SPEED);
     }
 
     @Override
@@ -82,5 +86,25 @@ public class LoadingScreen extends VrWorldScreen {
     @Override
     public void render(Camera camera, int whichEye) {
         super.render(camera, whichEye);
+    }
+
+    @Override
+    public void onDaydreamControllerUpdate(Controller controller, int connectionState) {
+
+    }
+
+    @Override
+    public void onControllerButtonEvent(Controller controller, DaydreamButtonEvent event) {
+
+    }
+
+    @Override
+    public void onControllerTouchPadEvent(Controller controller, DaydreamTouchEvent event) {
+
+    }
+
+    @Override
+    public void onControllerConnectionStateChange(int connectionState) {
+
     }
 }
