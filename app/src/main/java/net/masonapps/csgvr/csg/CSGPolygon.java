@@ -1,6 +1,5 @@
 package net.masonapps.csgvr.csg;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,7 +21,7 @@ public class CSGPolygon {
     }
     
     public CSGPolygon copy() {
-        final List<CSGVertex> vertices = this.vertices.stream().map(CSGVertex::copy).collect(Collectors.toCollection(ArrayList::new));
+        final List<CSGVertex> vertices = this.vertices.stream().map(CSGVertex::copy).collect(Collectors.toList());
         return new CSGPolygon(vertices, shared);
     }
 

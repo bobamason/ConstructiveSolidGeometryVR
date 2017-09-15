@@ -28,7 +28,7 @@ public class BspNode {
         this(null);
     }
 
-    private void build(List<CSGPolygon> polygons) {
+    public void build(List<CSGPolygon> polygons) {
         if (polygons.isEmpty()) return;
         if (this.plane == null) this.plane = polygons.get(0).plane.copy();
         List<CSGPolygon> f = new ArrayList<>();
