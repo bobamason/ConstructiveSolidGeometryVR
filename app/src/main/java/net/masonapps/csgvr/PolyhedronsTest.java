@@ -1,11 +1,14 @@
 package net.masonapps.csgvr;
 
+import android.util.Log;
+
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -13,13 +16,17 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.FloatArray;
+import com.badlogic.gdx.utils.ShortArray;
 
 import net.masonapps.csgvr.csg.CSG;
 import net.masonapps.csgvr.csg.CsgTriangle;
@@ -70,35 +77,8 @@ class PolyhedronsTest implements ApplicationListener {
         environment.add(light);
 
         grid = Grid.newInstance(5f);
-
-//        final ModelBuilder modelBuilder = new ModelBuilder();
-//        final Model model = modelBuilder.createBox(1f, 1f, 1f, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-//        polyhedronsSet = ConversionUtils.meshToPolyhedronSet(model.meshes.get(0));
-
-//        polyhedronsSet = new Box(2, 0.25f, 2).getPolyhedronsSet();
-//        for (int i = 1; i < 3; i++) {
-//            final Box box = new Box(2, 0.25f, 2);
-//            box.rotateY(30 * i);
-//            polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, box.getPolyhedronsSet());
-//        }
-//
-//        final Cylinder cylinder = new Cylinder(0.5f, 0.5f);
-//        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().union(polyhedronsSet, cylinder.getPolyhedronsSet());
-//
-//        final Cylinder hole = new Cylinder(0.25f, 1f);
-//        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().difference(polyhedronsSet, hole.getPolyhedronsSet());
-//        final Cylinder rounded = new Cylinder((float) (Math.sqrt(2) * 0.95), 0.5f);
-//        rounded.divisions = 24;
-//        polyhedronsSet = (PolyhedronsSet) new RegionFactory<Euclidean3D>().intersection(polyhedronsSet, rounded.getPolyhedronsSet());
-
-//        instances.add(PolyhedronsetToLineModel.convert(polyhedronsSet));
-
-//        final Material material = new Material(ColorAttribute.createDiffuse(Color.GRAY), ColorAttribute.createSpecular(Color.GRAY), FloatAttribute.createShininess(50f));
-//        final ModelInstance modelInstance = ConversionUtils.polyhedronsSetToModelInstance(polyhedronsSet, material);
-//        instances.add(modelInstance);
-//        translationManipulator = new TranslationManipulator();
-//        instances.add(new ModelInstance(DebugUtils.createEdgeModel(modelInstance.model, Color.BLACK)));
-        testCSG();
+        grid.setToPlane(new Plane(new Vector3D(0, 1, 0), 1e-10));
+        testCut();
     }
 
     private void testCSG() {
@@ -113,6 +93,68 @@ class PolyhedronsTest implements ApplicationListener {
         final Model model = mb.end();
         final ModelInstance csgTestInstance = new ModelInstance(model, -1, 0, -2);
         instances.add(csgTestInstance);
+    }
+
+    private void testCut() {
+        ModelBuilder mb = new ModelBuilder();
+        final Model s1 = mb.createBox(1f, 1f, 1f, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        final Mesh sMesh = s1.meshes.get(0);
+        final float[] sVerts = new float[sMesh.getNumVertices() * sMesh.getVertexSize() / 4];
+        sMesh.getVertices(sVerts);
+        final short[] sIndices = new short[sMesh.getNumIndices()];
+        sMesh.getIndices(sIndices);
+        final com.badlogic.gdx.math.Plane plane = new com.badlogic.gdx.math.Plane(new Vector3(1, 1, 1).nor(), 0);
+        FloatArray vertArray = new FloatArray();
+        ShortArray indArray = new ShortArray();
+        final int vertexSize = 6;
+        final Intersector.SplitTriangle split = new Intersector.SplitTriangle(vertexSize);
+        final float[] tri = new float[vertexSize * 3];
+        int index = 0;
+        for (int i = 0; i < sIndices.length; i += 3) {
+            int ia = sIndices[i];
+            int ib = sIndices[i + 1];
+            int ic = sIndices[i + 2];
+            for (int j = 0; j < vertexSize; j++) {
+                tri[j] = sVerts[ia + j];
+            }
+            for (int j = 0; j < vertexSize; j++) {
+                tri[j + vertexSize] = sVerts[ib + j];
+            }
+            for (int j = 0; j < vertexSize; j++) {
+                tri[j + vertexSize * 2] = sVerts[ic + j];
+            }
+            Intersector.splitTriangle(tri, plane, split);
+            for (int j = 0; j < split.numFront; j++) {
+                for (int v = 0; v < 3; v++) {
+                    for (int k = 0; k < vertexSize; k++) {
+                        vertArray.add(split.front[j * vertexSize * 3 + v * vertexSize + k]);
+                    }
+                    indArray.add(index++);
+                }
+            }
+        }
+        final Mesh mesh = new Mesh(false, vertArray.size / vertexSize, indArray.size, new VertexAttributes(VertexAttribute.Position(), VertexAttribute.Normal()));
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < vertArray.size; i += vertexSize) {
+            sb.append(i / vertexSize);
+            sb.append("|");
+            for (int j = 0; j < vertexSize; j++) {
+                sb.append(vertArray.get(i + j));
+                if (j == vertexSize - 1)
+                    sb.append("\n");
+                else
+                    sb.append(", ");
+            }
+        }
+        Log.d("CSG", "vertices: " + sb.toString());
+        Log.d("CSG", "indices: " + indArray.toString(","));
+        mesh.setVertices(vertArray.toArray());
+        mesh.setIndices(indArray.toArray());
+        mb.begin();
+        mb.part("u", mesh, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GREEN), IntAttribute.createCullFace(0)));
+        final Model model = mb.end();
+        final ModelInstance cutTestInstance = new ModelInstance(model, 0, 1, 0);
+        instances.add(cutTestInstance);
     }
 
     @Override

@@ -1,38 +1,30 @@
 package net.masonapps.csgvr.csg;
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 
 /**
  * Created by Bob on 9/5/2017.
  */
 
-public class CsgVertex {
-    public static final int ARRAY_LENGTH = 12;
+public class CSGVertex {
+    public static final int ARRAY_LENGTH = 6;
     public final Vector3 position = new Vector3();
     public final Vector3 normal = new Vector3();
-    public final Vector2 uv = new Vector2();
-    public final Color color = new Color();
 
-    public CsgVertex() {
+    public CSGVertex() {
     }
 
-    public CsgVertex(CsgVertex other) {
+    public CSGVertex(CSGVertex other) {
         position.set(other.position);
         normal.set(other.normal);
-        uv.set(other.uv);
-        color.set(other.color);
     }
 
-    public static CsgVertex fromArray(float[] array, int offset) {
+    public static CSGVertex fromArray(float[] array, int offset) {
         if (offset + ARRAY_LENGTH > array.length)
             throw new IllegalArgumentException("array length must be at least " + (offset + ARRAY_LENGTH) + " to use an offset of " + offset);
-        final CsgVertex v = new CsgVertex();
+        final CSGVertex v = new CSGVertex();
         v.position.set(array[offset], array[offset + 1], array[offset + 2]);
         v.normal.set(array[offset + 3], array[offset + 4], array[offset + 5]).nor();
-        v.uv.set(array[offset + 6], array[offset + 7]);
-        v.color.set(array[offset + 8], array[offset + 9], array[offset + 10], array[offset + 11]);
         return v;
     }
 
@@ -46,18 +38,21 @@ public class CsgVertex {
         array[3] = normal.x;
         array[4] = normal.y;
         array[5] = normal.z;
-
-        array[6] = uv.x;
-        array[7] = uv.y;
-
-        array[8] = color.r;
-        array[9] = color.g;
-        array[10] = color.b;
-        array[11] = color.a;
         return array;
     }
 
     public void flip() {
         normal.scl(-1);
+    }
+
+    public CSGVertex copy() {
+        return new CSGVertex(this);
+    }
+
+    public CSGVertex interpolate(CSGVertex other, float t) {
+        final CSGVertex vertex = new CSGVertex(this);
+        vertex.position.lerp(other.position, t);
+        vertex.normal.lerp(other.normal, t).nor();
+        return vertex;
     }
 }
