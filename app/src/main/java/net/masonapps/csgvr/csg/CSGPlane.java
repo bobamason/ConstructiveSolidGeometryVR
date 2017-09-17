@@ -51,7 +51,7 @@ public class CSGPlane {
 
         switch (polygonType) {
             case COPLANAR:
-                if (this.normal.dot(polygon.plane.normal) >= 0f)
+                if (this.normal.dot(polygon.plane.normal) > 0f)
                     coplanarFront.add(polygon);
                 else
                     coplanarBack.add(polygon);

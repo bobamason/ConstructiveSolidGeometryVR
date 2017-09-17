@@ -13,10 +13,12 @@ public class CSGPolygon {
     public final CSGPlane plane;
     public List<CSGVertex> vertices;
     public SharedProperties shared;
+    private boolean isValid;
 
     public CSGPolygon(List<CSGVertex> vertices, SharedProperties shared) {
         this.vertices = vertices;
         plane = CSGPlane.fromPoints(vertices.get(0).position, vertices.get(1).position, vertices.get(2).position);
+        isValid = !plane.normal.isZero(CSGPlane.EPSILON);
         this.shared = shared;
     }
     
@@ -29,5 +31,9 @@ public class CSGPolygon {
         Collections.reverse(this.vertices);
         this.vertices.forEach(CSGVertex::flip);
         this.plane.flip();
+    }
+
+    public boolean isValid() {
+        return isValid;
     }
 }

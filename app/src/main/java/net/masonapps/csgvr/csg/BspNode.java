@@ -4,14 +4,14 @@ import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by Bob on 9/4/2017.
  */
 
 public class BspNode {
-    @Nullable
-    private CSGPlane plane = null;
+    private CSGPlane plane;
     @Nullable
     private BspNode front = null;
     @Nullable
@@ -29,14 +29,16 @@ public class BspNode {
     }
 
     public void build(List<CSGPolygon> polygons) {
-        if (polygons.isEmpty()) return;
-        if (this.plane == null) this.plane = polygons.get(0).plane.copy();
-        polygons.add(polygons.get(0));
+        List<CSGPolygon> polygonList = polygons.stream().filter(CSGPolygon::isValid).distinct().collect(Collectors.toList());
+        if (polygonList.isEmpty()) return;
+
+        if (this.plane == null) {
+            this.plane = polygonList.get(0).plane.copy();
+        }
+        
         List<CSGPolygon> f = new ArrayList<>();
         List<CSGPolygon> b = new ArrayList<>();
-        for (int i = 1; i < polygons.size(); i++) {
-            this.plane.splitPolygon(polygons.get(i), this.polygons, this.polygons, f, b);
-        }
+        polygonList.forEach(polygon -> this.plane.splitPolygon(polygon, this.polygons, this.polygons, f, b));
         if (!f.isEmpty()) {
             if (front == null) front = new BspNode();
             front.build(f);
@@ -86,7 +88,7 @@ public class BspNode {
         if (back != null)
             b = back.clipPolygons(b);
         else
-            b.clear();
+            b = new ArrayList<>(0);
 
         final List<CSGPolygon> out = new ArrayList<>();
         out.addAll(f);

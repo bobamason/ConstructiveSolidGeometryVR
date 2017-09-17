@@ -67,7 +67,7 @@ class CsgTest implements ApplicationListener {
         grid = Grid.newInstance(5f);
         grid.setToPlane(new Plane(new Vector3D(0, 1, 0), 1e-10));
 
-        csg1 = CSG.cylinder(new Vector3(), 3f, 1.5f).subtract(CSG.cube(new Vector3(0.5f, 0f, 0.5f), 0.75f));
+        csg1 = CSG.sphere(new Vector3(), 0.75f).union(CSG.sphere(new Vector3(0.f, 0.5f, 0.1f), 1f));
         instances.add(new ModelInstance(csg1.toModel(new ModelBuilder(), Color.BLUE)));
     }
 
@@ -94,8 +94,8 @@ class CsgTest implements ApplicationListener {
 
         modelBatch.begin(camera);
         modelBatch.render(instances, environment);
-        if (grid.isRenderingEnabled())
-            modelBatch.render(grid.modelInstance);
+//        if (grid.isRenderingEnabled())
+//            modelBatch.render(grid.modelInstance);
 //        translationManipulator.render(modelBatch);
         modelBatch.end();
 

@@ -73,8 +73,12 @@ public class CSG {
         return new CSG(meshToPolygons(mesh, transform));
     }
 
-    public static CSG sphere() {
-        return new CSG();
+    public static CSG sphere(Vector3 center, float r) {
+        Matrix4 transform = new Matrix4().translate(center).scale(r * 2f, r * 2f, r * 2f);
+        ModelBuilder mb = new ModelBuilder();
+        Model model = mb.createSphere(1f, 1f, 1f, 24, 12, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        Mesh mesh = model.meshes.get(0);
+        return new CSG(meshToPolygons(mesh, transform));
     }
 
     public CSG copy() {
