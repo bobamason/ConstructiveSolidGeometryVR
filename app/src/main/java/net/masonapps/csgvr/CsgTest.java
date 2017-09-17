@@ -1,5 +1,7 @@
 package net.masonapps.csgvr;
 
+import android.util.Log;
+
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -67,8 +69,13 @@ class CsgTest implements ApplicationListener {
         grid = Grid.newInstance(5f);
         grid.setToPlane(new Plane(new Vector3D(0, 1, 0), 1e-10));
 
-        csg1 = CSG.sphere(new Vector3(), 0.75f).union(CSG.sphere(new Vector3(0.f, 0.5f, 0.1f), 1f));
-        instances.add(new ModelInstance(csg1.toModel(new ModelBuilder(), Color.BLUE)));
+//        csg1 = CSG.cylinder(new Vector3(), 1f, 0.25f);
+        try {
+            csg1 = CSG.cylinder(new Vector3(), 1f, 0.75f).subtract(CSG.cylinder(new Vector3(0.5f, 0.f, 0.f), 1f, 0.25f));
+            instances.add(new ModelInstance(csg1.toModel(new ModelBuilder(), Color.BLUE)));
+        } catch (Throwable t) {
+            Log.e(CsgTest.class.getSimpleName(), t.getLocalizedMessage());
+        }
     }
 
     @Override
@@ -114,6 +121,7 @@ class CsgTest implements ApplicationListener {
     }
 
     private void renderCSG(CSG csg, Color color) {
+        if (csg == null) return;
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.setColor(color);
         shapeRenderer.begin();

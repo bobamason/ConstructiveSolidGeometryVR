@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
@@ -67,18 +68,61 @@ public class CSG {
 
     public static CSG cylinder(Vector3 center, float height, float radius) {
         Matrix4 transform = new Matrix4().translate(center);
-        ModelBuilder mb = new ModelBuilder();
-        Model model = mb.createCylinder(radius * 2f, height, radius * 2f, 16, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-        Mesh mesh = model.meshes.get(0);
-        return new CSG(meshToPolygons(mesh, transform));
+        List<CSGPolygon> polygons = new ArrayList<>();
+        List<CSGVertex> top = new ArrayList<>();
+        final float aStep = 360f / 16;
+        for (int i = 0; i < 16; i++) {
+            final CSGVertex v = new CSGVertex();
+            v.position.set(MathUtils.cosDeg(i * aStep) * radius, height / 2f, -MathUtils.sinDeg(i * aStep) * radius).mul(transform);
+            v.normal.set(0, 1, 0).rot(transform).nor();
+            top.add(v);
+        }
+        polygons.add(new CSGPolygon(top, new SharedProperties()));
+
+        List<CSGVertex> bottom = new ArrayList<>();
+        for (int i = 0; i < 16; i++) {
+            final CSGVertex v = new CSGVertex();
+            v.position.set(MathUtils.cosDeg(360f - i * aStep) * radius, -height / 2f, -MathUtils.sinDeg(360f - i * aStep) * radius).mul(transform);
+            v.normal.set(0, -1, 0).rot(transform).nor();
+            bottom.add(v);
+        }
+        polygons.add(new CSGPolygon(bottom, new SharedProperties()));
+
+        for (int i = 0; i < 16; i++) {
+            final int j = (i + 1) % 16;
+            List<CSGVertex> verts = new ArrayList<>();
+
+            final CSGVertex v1 = new CSGVertex();
+            v1.position.set(MathUtils.cosDeg(i * aStep) * radius, height / 2f, -MathUtils.sinDeg(i * aStep) * radius).mul(transform);
+            v1.normal.set(v1.position.x, 0, v1.position.z).rot(transform).nor();
+            verts.add(v1);
+
+            final CSGVertex v2 = new CSGVertex();
+            v2.position.set(v1.position).sub(0, height, 0).mul(transform);
+            v2.normal.set(v2.position.x, 0, v2.position.z).rot(transform).nor();
+            verts.add(v2);
+
+            final CSGVertex v3 = new CSGVertex();
+            v3.position.set(MathUtils.cosDeg(j * aStep) * radius, -height / 2f, -MathUtils.sinDeg(j * aStep) * radius).mul(transform);
+            v3.normal.set(v3.position.x, 0, v3.position.z).rot(transform).nor();
+            verts.add(v3);
+
+            final CSGVertex v4 = new CSGVertex();
+            v4.position.set(v3.position).add(0, height, 0).mul(transform);
+            v4.normal.set(v4.position.x, 0, v4.position.z).rot(transform).nor();
+            verts.add(v4);
+
+            polygons.add(new CSGPolygon(verts, new SharedProperties()));
+        }
+
+        return new CSG(polygons);
     }
 
     public static CSG sphere(Vector3 center, float r) {
         Matrix4 transform = new Matrix4().translate(center).scale(r * 2f, r * 2f, r * 2f);
-        ModelBuilder mb = new ModelBuilder();
-        Model model = mb.createSphere(1f, 1f, 1f, 24, 12, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-        Mesh mesh = model.meshes.get(0);
-        return new CSG(meshToPolygons(mesh, transform));
+        List<CSGPolygon> polygons = new ArrayList<>();
+        List<CSGVertex> verts = new ArrayList<>();
+        return new CSG(polygons);
     }
 
     public CSG copy() {
