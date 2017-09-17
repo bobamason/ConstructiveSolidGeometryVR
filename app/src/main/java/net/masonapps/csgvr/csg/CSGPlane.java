@@ -51,7 +51,7 @@ public class CSGPlane {
 
         switch (polygonType) {
             case COPLANAR:
-                if (this.normal.dot(polygon.plane.normal) > 0)
+                if (this.normal.dot(polygon.plane.normal) >= 0f)
                     coplanarFront.add(polygon);
                 else
                     coplanarBack.add(polygon);
@@ -72,7 +72,7 @@ public class CSGPlane {
                     final CSGVertex vi = polygon.vertices.get(i);
                     final CSGVertex vj = polygon.vertices.get(j);
                     if (ti != BACK) f.add(vi);
-                    if (ti != FRONT) f.add(ti != BACK ? vi.copy() : vi);
+                    if (ti != FRONT) b.add(ti != BACK ? vi.copy() : vi);
                     if ((ti | tj) == SPANNING) {
                         final Vector3 tmp = Pools.obtain(Vector3.class);
                         final float t = (this.w - this.normal.dot(vi.position)) / this.normal.dot(tmp.set(vj.position).sub(vi.position));

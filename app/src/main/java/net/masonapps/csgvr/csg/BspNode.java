@@ -31,9 +31,10 @@ public class BspNode {
     public void build(List<CSGPolygon> polygons) {
         if (polygons.isEmpty()) return;
         if (this.plane == null) this.plane = polygons.get(0).plane.copy();
+        polygons.add(polygons.get(0));
         List<CSGPolygon> f = new ArrayList<>();
         List<CSGPolygon> b = new ArrayList<>();
-        for (int i = 0; i < polygons.size(); i++) {
+        for (int i = 1; i < polygons.size(); i++) {
             this.plane.splitPolygon(polygons.get(i), this.polygons, this.polygons, f, b);
         }
         if (!f.isEmpty()) {
