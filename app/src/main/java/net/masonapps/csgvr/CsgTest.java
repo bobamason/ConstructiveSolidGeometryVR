@@ -69,7 +69,7 @@ class CsgTest implements ApplicationListener {
 
 //        csg1 = CSG.cylinder(new Vector3(), 1f, 0.25f);
 //        try {
-        csg1 = CSG.cube(new Vector3(), 1f).subtract(CSG.cylinder(new Vector3(0.f, 0.f, 0.f), 1f, 0.25f));
+        csg1 = CSG.cube(new Vector3(), 1f).subtract(CSG.cylinder(new Vector3(0.1f, 0.f, 0.f), 2f, 0.25f));
             instances.add(new ModelInstance(csg1.toModel(new ModelBuilder(), Color.BLUE)));
 //        } catch (Throwable t) {
 //            Log.e(CsgTest.class.getSimpleName(), t.getLocalizedMessage());

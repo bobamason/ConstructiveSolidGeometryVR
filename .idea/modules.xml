@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/CSGVR.iml" filepath="$PROJECT_DIR$/CSGVR.iml" />
-      <module fileurl="file://C:\Users\Bob\AndroidStudioProjects\ConstructiveSolidGeometryVR\CSGVR.iml" filepath="C:\Users\Bob\AndroidStudioProjects\ConstructiveSolidGeometryVR\CSGVR.iml" />
-      <module fileurl="file://C:\Users\ims_3\AndroidStudioProjects\CSGVR\ConstructiveSolidGeometryVR.iml" filepath="C:\Users\ims_3\AndroidStudioProjects\CSGVR\ConstructiveSolidGeometryVR.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ConstructiveSolidGeometryVR.iml" filepath="$PROJECT_DIR$/ConstructiveSolidGeometryVR.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/libgdxgvr/libgdxgvr.iml" filepath="$PROJECT_DIR$/libgdxgvr/libgdxgvr.iml" />
     </modules>

@@ -6,6 +6,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Pools;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -47,12 +48,15 @@ public class CSGPlane {
 
         for (int i = 0; i < polygon.vertices.size(); i++) {
             float t = this.normal.dot(polygon.vertices.get(i).position) - this.w;
-            int type = (t < -EPSILON) ? BACK : ((t > EPSILON) ? FRONT : COPLANAR);
+            int type;
+            if (t < -EPSILON) type = BACK;
+            else if (t > EPSILON) type = FRONT;
+            else type = COPLANAR;
             polygonType |= type;
             types[i] = type;
         }
 
-        Log.d(tag, "polygon type: " + polygonType);
+        Log.d(tag, "polygon side: " + polygonType + " vertex sides: " + Arrays.toString(types));
 
         switch (polygonType) {
             case COPLANAR:
