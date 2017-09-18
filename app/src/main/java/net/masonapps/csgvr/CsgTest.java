@@ -1,7 +1,5 @@
 package net.masonapps.csgvr;
 
-import android.util.Log;
-
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -70,12 +68,12 @@ class CsgTest implements ApplicationListener {
         grid.setToPlane(new Plane(new Vector3D(0, 1, 0), 1e-10));
 
 //        csg1 = CSG.cylinder(new Vector3(), 1f, 0.25f);
-        try {
-            csg1 = CSG.cylinder(new Vector3(), 1f, 0.75f).subtract(CSG.cylinder(new Vector3(0.5f, 0.f, 0.f), 1f, 0.25f));
+//        try {
+        csg1 = CSG.cube(new Vector3(), 1f).subtract(CSG.cylinder(new Vector3(0.f, 0.f, 0.f), 1f, 0.25f));
             instances.add(new ModelInstance(csg1.toModel(new ModelBuilder(), Color.BLUE)));
-        } catch (Throwable t) {
-            Log.e(CsgTest.class.getSimpleName(), t.getLocalizedMessage());
-        }
+//        } catch (Throwable t) {
+//            Log.e(CsgTest.class.getSimpleName(), t.getLocalizedMessage());
+//        }
     }
 
     @Override

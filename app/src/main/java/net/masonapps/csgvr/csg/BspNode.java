@@ -1,6 +1,7 @@
 package net.masonapps.csgvr.csg;
 
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ public class BspNode {
 
     public void build(List<CSGPolygon> polygons) {
         List<CSGPolygon> polygonList = polygons.stream().filter(CSGPolygon::isValid).distinct().collect(Collectors.toList());
+        Log.d("BspNode::build", "polygonList size: " + polygonList.size());
         if (polygonList.isEmpty()) return;
 
         if (this.plane == null) {

@@ -1,5 +1,7 @@
 package net.masonapps.csgvr.csg;
 
+import android.util.Log;
+
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Pools;
 
@@ -39,6 +41,7 @@ public class CSGPlane {
     }
 
     public void splitPolygon(CSGPolygon polygon, List<CSGPolygon> coplanarFront, List<CSGPolygon> coplanarBack, List<CSGPolygon> front, List<CSGPolygon> back) {
+        final String tag = "CSGPlane::splitPolygon";
         int polygonType = 0;
         int[] types = new int[polygon.vertices.size()];
 
@@ -49,20 +52,28 @@ public class CSGPlane {
             types[i] = type;
         }
 
+        Log.d(tag, "polygon type: " + polygonType);
+
         switch (polygonType) {
             case COPLANAR:
-                if (this.normal.dot(polygon.plane.normal) > 0f)
+                if (this.normal.dot(polygon.plane.normal) > 0f) {
                     coplanarFront.add(polygon);
-                else
+                    Log.d(tag, "added to list coplanarFront");
+                } else {
                     coplanarBack.add(polygon);
+                    Log.d(tag, "added to list coplanarBack");
+                }
                 break;
             case FRONT:
                 front.add(polygon);
+                Log.d(tag, "added to list front");
                 break;
             case BACK:
                 back.add(polygon);
+                Log.d(tag, "added to list back");
                 break;
             case SPANNING:
+                Log.d(tag, "splitting spanning polygon");
                 List<CSGVertex> f = new ArrayList<>();
                 List<CSGVertex> b = new ArrayList<>();
                 for (int i = 0; i < polygon.vertices.size(); i++) {
@@ -82,8 +93,20 @@ public class CSGPlane {
                         Pools.free(tmp);
                     }
                 }
-                if (f.size() >= 3) front.add(new CSGPolygon(f, polygon.shared));
-                if (b.size() >= 3) back.add(new CSGPolygon(b, polygon.shared));
+                if (f.size() >= 3) {
+                    final CSGPolygon frontPolygon = new CSGPolygon(f, polygon.shared);
+                    if (polygon.isValid()) {
+                        front.add(frontPolygon);
+                        Log.d(tag, "added to list front");
+                    }
+                }
+                if (b.size() >= 3) {
+                    final CSGPolygon backPolygon = new CSGPolygon(b, polygon.shared);
+                    if (backPolygon.isValid()) {
+                        back.add(backPolygon);
+                        Log.d(tag, "added to list back");
+                    }
+                }
                 break;
         }
     }
